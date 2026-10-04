@@ -7,7 +7,7 @@
 --disable-ai-models
 --disable-real-weather-fetch
 --disable-clouds3d
---visibility=8000
+--visibility=20000
 --prop:/sim/traffic-manager/enabled=false
 --log-level=info
 # no mouse on the console: hide the menu bar

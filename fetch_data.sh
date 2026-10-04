@@ -1,8 +1,7 @@
 #!/bin/bash
 # Download the FlightGear 0.9.10 base data (161 MB), check it, unpack it into
-# fgdata_x/ and add the PS3 changes from port/fgdata: airport and navaid
-# databases cut down to California (tools/regional_db.py), the PS3 controller
-# bindings and a small debug logger.
+# fgdata_x/ and add the PS3 changes from port/fgdata: the PS3 controller
+# bindings, the hangar's aircraft list and the Nasal additions.
 set -e
 R="$(cd "$(dirname "$0")" && pwd)"
 SNAP=https://snapshot.debian.org/archive/debian/20070301T000000Z/pool/main

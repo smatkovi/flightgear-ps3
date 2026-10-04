@@ -61,6 +61,23 @@ static const Airport airports[] = {
     { "KSFO", "28R", "San Francisco Intl" },
     { "KSFO", "10L", "San Francisco Intl" },
     { "KOAK", "29",  "Oakland Intl" },
+    /* more of the World Scenery 2.12 block 10-20 E / 40-50 N */
+    { "LOWS", "16",  "Salzburg" },
+    { "LOWI", "08",  "Innsbruck" },
+    { "LOWG", "17C", "Graz" },
+    { "LOWL", "09",  "Linz" },
+    { "LOWK", "10L", "Klagenfurt" },
+    { "EDDM", "08R", "Muenchen" },
+    { "EDDN", "10",  "Nuernberg" },
+    { "LZIB", "13",  "Bratislava" },
+    { "LKTB", "10",  "Brno-Turany" },
+    { "LHBP", "13L", "Budapest Ferihegy" },
+    { "LJLJ", "13",  "Ljubljana" },
+    { "LDZA", "05",  "Zagreb" },
+    { "LDSP", "05",  "Split" },
+    { "LIPZ", "04R", "Venezia Tessera" },
+    { "LIPE", "12",  "Bologna" },
+    { "LIRF", "16R", "Roma Fiumicino" },
 };
 static const int n_airports = sizeof airports / sizeof airports[0];
 

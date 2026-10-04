@@ -16,9 +16,10 @@ Works:
 
 - the full simulator: JSBSim, YASim and LaRCsim flight models, 3D cockpits and
   instruments, scenery, sky, clouds, HUD, Nasal scripting, autopilot
-- scenery for the Vienna area (from FlightGear's World Scenery 2.12) and the
-  San Francisco Bay Area (from the base package); the Cessna 172P starts on
-  runway 29 at Vienna (LOWW)
+- scenery for Central Europe, 10-20 E / 40-50 N (from FlightGear's World
+  Scenery 2.12: Vienna, Munich, Salzburg, Innsbruck, Budapest, Zagreb,
+  Venice, Rome, ...) and the San Francisco Bay Area (from the base package);
+  the Cessna 172P starts on runway 29 at Vienna (LOWW)
 - the PS3 controller, including tilt steering
 - a start screen (the *hangar*) to pick the aircraft and the airport, and to
   download more aircraft from the FlightGear 1.x archive on the PS3 itself
@@ -52,7 +53,8 @@ The start screen shows the aircraft and the airport of the next flight:
 | --- | --- |
 | d-pad up / down | choose a line |
 | cross | open the aircraft list / start (on *Fly*) |
-| d-pad left / right | change the airport and runway (Vienna, San Francisco, Oakland) |
+| d-pad left / right | change the airport and runway (Vienna, San Francisco, Oakland, and 16 more in Central Europe) |
+| triangle | antialiasing on/off (restarts) |
 | START | fly |
 
 In the aircraft list, the installed aircraft come first, then the ones that
@@ -133,17 +135,19 @@ For aircraft made for FlightGear 1.9 the port adds:
 - a Nasal error in the arguments of a call no longer crashes FlightGear (a
   bug in SimGear 0.3.10's interpreter that these aircraft trigger).
 
-Scenery: the Vienna tiles come from World Scenery 2.12 (2013). Its terrain
-files use the format version FlightGear 0.9.10 reads, and its land class,
-runway and light materials all exist in 0.9.10, so the tiles load unchanged;
+Scenery: Central Europe comes from World Scenery 2.12 (2013), the whole
+10-20 E / 40-50 N block (95 tiles of 1x1 degrees, 162 MB). Its terrain files
+use the format version FlightGear 0.9.10 reads, and its land class, runway
+and light materials all exist in 0.9.10, so the tiles load unchanged;
 [tools/ws2_install.py](tools/ws2_install.py) only drops scenery objects whose
 models 0.9.10 lacks (power pylons, VOR/DME, markers). More areas can be added
 the same way from the
 [World Scenery 2.12 archives](https://mirrors.ibiblio.org/flightgear/ftp/Scenery-v2.12/)
 (see `fetch_scenery.sh`), as long as their terrain files are version 6.
-The airport and navaid databases are cut down to California and Central
-Europe ([tools/regional_db.py](tools/regional_db.py)); the full world
-databases also fit, at about 35 MB more memory.
+The airport and navaid databases are the full world ones of 0.9.10 (about
+35 MB of memory; [tools/regional_db.py](tools/regional_db.py) cuts them down
+to regions if memory gets short). Visibility is 20 km (`--visibility=` in
+`fgfs.args`).
 
 ## Logs
 

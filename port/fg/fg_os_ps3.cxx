@@ -135,6 +135,10 @@ static std::string aircraft_problems()
     if (fd < 0) return w;
     while ((n = read(fd, buf, sizeof buf)) > 0) log.append(buf, n);
     close(fd);
+    // the aircraft is loaded before the scenery; scenery models have their
+    // own problems (newer Nasal, missing effects) that are not the aircraft's
+    size_t tiles = log.find("Loading tile ");
+    if (tiles != std::string::npos) log.resize(tiles);
     // "pick" animations (clickable cockpits) need a mouse anyway
     bool anim = false;
     for (size_t p = 0; !anim && (p = log.find("Unknown animation type ", p)) != std::string::npos; p++)
