@@ -8,6 +8,8 @@ extern "C" {
 #endif
 
 /* Set the video mode, bring up the RSX and load the fixed-function shaders. */
+/* Antialiasing (default on); only before the first ps3glInit() */
+void ps3glSetAntialiasing(int on);
 void ps3glInit(void);
 /* Present the frame and start the next one. */
 void ps3glSwapBuffers(void);

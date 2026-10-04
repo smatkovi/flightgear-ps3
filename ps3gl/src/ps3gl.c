@@ -47,6 +47,13 @@
 
 static gcmContextData *ctx;
 static gcmSurface surf[2];
+/* Antialiasing: the scene goes into a multisampled target (aa_sx x aa_sy
+   samples per pixel, stored as a surface that much larger), which the
+   blit engine scales down into the display buffer before each flip. */
+static gcmSurface aa_surf;
+static int aa_on, aa_sx = 1, aa_sy = 1, aa_wanted = 1;
+static u32 aa_color_ofs, disp_ofs[2];
+
 static u32 cur_fb, first_flip = 1, label_val = 1;
 static videoResolution vmode;
 static int scr_w, scr_h;
@@ -1834,6 +1841,54 @@ static int set_mode(u32 id)
     return videoConfigure(VIDEO_PRIMARY, &cfg, NULL, 0) == 0;
 }
 
+void ps3glSetAntialiasing(int on) { aa_wanted = on; }
+
+static void bind_target(void)
+{
+    rsxSetSurface(ctx, aa_on ? &aa_surf : &surf[cur_fb]);
+}
+
+/* Downsample the multisampled scene into display buffer `dst`: bilinear at
+   the centre between the samples of each pixel averages them. The engine
+   takes at most 2048 source pixels per line, hence the strips. */
+static void aa_resolve(u32 dst)
+{
+    gcmTransferScale sc;
+    gcmTransferSurface ds;
+    u32 x, strip = 2048 / aa_sx;    /* output pixels per strip */
+    memset(&ds, 0, sizeof ds);
+    ds.format = GCM_TRANSFER_SURFACE_FORMAT_A8R8G8B8;
+    ds.pitch = scr_w * 4;
+    ds.offset = dst;
+    rsxSetTransferScaleMode(ctx, GCM_TRANSFER_LOCAL_TO_LOCAL, GCM_TRANSFER_SURFACE);
+    for (x = 0; x < (u32)scr_w; x += strip) {
+        u32 w = (u32)scr_w - x < strip ? (u32)scr_w - x : strip;
+        memset(&sc, 0, sizeof sc);
+        sc.conversion = GCM_TRANSFER_CONVERSION_TRUNCATE;
+        sc.format = GCM_TRANSFER_SCALE_FORMAT_A8R8G8B8;
+        sc.operation = GCM_TRANSFER_OPERATION_SRCCOPY;
+        sc.clipX = x;
+        sc.clipY = 0;
+        sc.clipW = w;
+        sc.clipH = scr_h;
+        sc.outX = x;
+        sc.outY = 0;
+        sc.outW = w;
+        sc.outH = scr_h;
+        sc.ratioX = rsxGetFixedSint32((float)aa_sx);
+        sc.ratioY = rsxGetFixedSint32((float)aa_sy);
+        sc.inW = w * aa_sx;
+        sc.inH = scr_h * aa_sy;
+        sc.pitch = scr_w * aa_sx * 4;
+        sc.origin = GCM_TRANSFER_ORIGIN_CENTER;
+        sc.interp = GCM_TRANSFER_INTERPOLATOR_LINEAR;
+        sc.offset = aa_color_ofs + x * aa_sx * 4;
+        sc.inX = rsxGetFixedUint16(0.0f);
+        sc.inY = rsxGetFixedUint16(0.0f);
+        rsxSetTransferScaleSurface(ctx, &sc, &ds);
+    }
+}
+
 static rsxProgramConst *vconst(const char *name)
 {
     rsxProgramConst *c = rsxVertexProgramGetConst(vpo, name);
@@ -1855,7 +1910,7 @@ void ps3glInit(void)
 
     if (ctx) {      /* already up (the hangar ran first): just reset the GL state */
         defaults();
-        rsxSetSurface(ctx, &surf[cur_fb]);
+        bind_target();
         send_raster();
         load_programs();
         return;
@@ -1863,6 +1918,10 @@ void ps3glInit(void)
     host = memalign(1024 * 1024, HOST_SIZE);
     rsxInit(&ctx, CB_SIZE, HOST_SIZE, host);
     dxt_init();             /* texture compression on the SPUs */
+    {   /* the resolution chosen in the XMB's display settings first */
+        videoState vs;
+        if (videoGetState(VIDEO_PRIMARY, 0, &vs) == 0) ok = set_mode(vs.displayMode.resolution);
+    }
     for (i = 0; i < sizeof modes / sizeof modes[0] && !ok; i++) ok = set_mode(modes[i]);
     if (!ok) { ps3glLog("ps3gl: no usable video mode"); exit(1); }
     scr_w = vmode.width;
@@ -1879,9 +1938,42 @@ void ps3glInit(void)
         void *fb = rsxMemalign(64, scr_h * pitch);
         rsxAddressToOffset(fb, &color_ofs[i]);
         gcmSetDisplayBuffer(i, color_ofs[i], pitch, scr_w, scr_h);
+        disp_ofs[i] = color_ofs[i];
     }
-    zbuf = rsxMemalign(64, scr_h * pitch);
-    rsxAddressToOffset(zbuf, &z_ofs);
+    {   /* 4x antialiasing up to 720p, 2x above (fill rate) */
+        u32 sx = 2, sy = scr_h > 720 ? 1 : 2, apitch = (u32)scr_w * sx * 4;
+        void *ac = aa_wanted ? rsxMemalign(64, scr_h * sy * apitch) : NULL;
+        void *az = ac ? rsxMemalign(64, scr_h * sy * apitch) : NULL;
+        if (az) {
+            u32 az_ofs;
+            rsxAddressToOffset(ac, &aa_color_ofs);
+            rsxAddressToOffset(az, &az_ofs);
+            memset(&aa_surf, 0, sizeof aa_surf);
+            aa_surf.colorFormat = GCM_SURFACE_A8R8G8B8;
+            aa_surf.colorTarget = GCM_SURFACE_TARGET_0;
+            aa_surf.colorLocation[0] = GCM_LOCATION_RSX;
+            aa_surf.colorOffset[0] = aa_color_ofs;
+            aa_surf.colorPitch[0] = apitch;
+            aa_surf.colorLocation[1] = aa_surf.colorLocation[2] = aa_surf.colorLocation[3] = GCM_LOCATION_RSX;
+            aa_surf.colorPitch[1] = aa_surf.colorPitch[2] = aa_surf.colorPitch[3] = 64;
+            aa_surf.depthFormat = GCM_SURFACE_ZETA_Z24S8;
+            aa_surf.depthLocation = GCM_LOCATION_RSX;
+            aa_surf.depthOffset = az_ofs;
+            aa_surf.depthPitch = apitch;
+            aa_surf.type = GCM_SURFACE_TYPE_LINEAR;
+            aa_surf.antiAlias = sy == 2 ? GCM_SURFACE_SQUARE_CENTERED_4 : GCM_SURFACE_DIAGONAL_CENTERED_2;
+            aa_surf.width = scr_w;
+            aa_surf.height = scr_h;
+            aa_sx = sx;
+            aa_sy = sy;
+            aa_on = 1;
+        } else if (ac) {
+            rsxFree(ac);
+        }
+    }
+    zbuf = aa_on ? NULL : rsxMemalign(64, scr_h * pitch);
+    if (zbuf) rsxAddressToOffset(zbuf, &z_ofs);
+    else z_ofs = 0;
     for (i = 0; i < 2; i++) {
         gcmSurface *sf = &surf[i];
         memset(sf, 0, sizeof *sf);
@@ -1931,7 +2023,7 @@ void ps3glInit(void)
     uc.envC = vconst("envC");
 
     defaults();
-    rsxSetSurface(ctx, &surf[cur_fb]);
+    bind_target();
     for (i = 0; i < 8; i++) rsxSetViewportClip(ctx, i, scr_w, scr_h);
     rsxSetZMinMaxControl(ctx, 0, 1, 1);
     rsxSetUserClipPlaneControl(ctx, GCM_USER_CLIP_PLANE_DISABLE, GCM_USER_CLIP_PLANE_DISABLE,
@@ -1940,7 +2032,8 @@ void ps3glInit(void)
     rsxSetColorMaskMrt(ctx, 0);
     send_raster();
     load_programs();
-    ps3glLog("ps3gl: %dx%d, vertex buffer %d MB", scr_w, scr_h, VB_BYTES >> 20);
+    ps3glLog("ps3gl: %dx%d, %s, vertex buffer %d MB", scr_w, scr_h,
+             !aa_on ? "no antialiasing" : aa_sy == 2 ? "4x antialiasing" : "2x antialiasing", VB_BYTES >> 20);
 }
 
 void ps3glSwapBuffers(void)
@@ -1960,13 +2053,14 @@ void ps3glSwapBuffers(void)
         }
         gcmResetFlipStatus();
     }
+    if (aa_on) aa_resolve(disp_ofs[cur_fb]);
     gcmSetFlip(ctx, cur_fb);
     rsxFlushBuffer(ctx);
     gcmSetWaitFlip(ctx);
     first_flip = 0;
 
     cur_fb ^= 1;
-    rsxSetSurface(ctx, &surf[cur_fb]);
+    bind_target();
     vb_off = 0;
     last_draws = st_draws; last_verts = st_verts;
     st_draws = st_verts = 0;

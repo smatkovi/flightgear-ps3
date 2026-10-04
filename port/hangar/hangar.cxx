@@ -85,6 +85,7 @@ static vector<Entry> entries;               // installed first, then downloadabl
 static std::map<string, string> notes;      // set -> problem seen at the last start
 static string g_set;                        // aircraft of the current start
 static bool g_starting;
+static bool g_batch;            /* --no-hangar: no hangar to go back to */
 
 // ---------------------------------------------------------------- files
 
@@ -471,7 +472,7 @@ static bool pressed_rep(unsigned b, int btn)
 
 enum { SCR_MAIN, SCR_LIST, SCR_ASK_DL, SCR_DL, SCR_ASK_DEL, SCR_MSG };
 
-static int screen, main_sel = 2, list_sel, list_top, cur = -1, airport;
+static int screen, main_sel = 2, list_sel, list_top, cur = -1, airport, antialiasing = 1;
 static http_dl dl;
 static int dl_entry = -1;
 static string dl_file;
@@ -510,6 +511,8 @@ static void draw_main()
         std::map<string, string>::iterator n = notes.find(e->set);
         if (n != notes.end()) text(80, 560, 21, "Note: " + n->second, 1, 0.6f, 0.3f);
     }
+    text(80, 640, 19, antialiasing ? "Antialiasing: on   (Triangle: off, restarts)"
+                                    : "Antialiasing: off   (Triangle: on, restarts)", 0.6f, 0.65f, 0.75f);
     help("Up/Down: choose     X: select     Left/Right: change airport     START: fly");
 }
 
@@ -651,6 +654,15 @@ static void start_download()
     screen = SCR_DL;
 }
 
+// aircraft, airport and antialiasing for the next start
+static void save_cfg()
+{
+    char c[200];
+    snprintf(c, sizeof c, "aircraft=%s\nairport=%d\nantialiasing=%d\n",
+             cur >= 0 ? entries[cur].set.c_str() : "", airport, antialiasing);
+    write_file(CFG_FILE, c);
+}
+
 static void handle(unsigned b)
 {
     switch (screen) {
@@ -659,6 +671,11 @@ static void handle(unsigned b)
         if (pressed_rep(b, PS3PAD_DOWN)) main_sel = (main_sel + 1) % 3;
         if (main_sel == 1 && pressed_rep(b, PS3PAD_LEFT)) airport = (airport + n_airports - 1) % n_airports;
         if (main_sel == 1 && pressed_rep(b, PS3PAD_RIGHT)) airport = (airport + 1) % n_airports;
+        if (pressed(b, PS3PAD_TRIANGLE)) {      /* takes a restart: the render targets */
+            antialiasing = !antialiasing;
+            save_cfg();
+            hangar_restart();
+        }
         if (pressed(b, PS3PAD_CROSS)) {
             if (main_sel == 0) { screen = SCR_LIST; list_sel = cur >= 0 ? cur : 0; }
             else if (main_sel == 1) airport = (airport + 1) % n_airports;
@@ -727,9 +744,16 @@ void hangar_run(int *argc, char **argv, int max_args)
         g_set = from_args ? from_args : "c172p";
         write_file(STATUS_FILE, "starting " + g_set + "\n");
         g_starting = true;
+        g_batch = true;
         return;
     }
 
+    for (size_t i = 0; i < cfg.size(); i++) {
+        if (!cfg[i].compare(0, 9, "aircraft=")) cfg_set = trim(cfg[i].substr(9));
+        if (!cfg[i].compare(0, 8, "airport=")) airport = atoi(cfg[i].c_str() + 8) % n_airports;
+        if (!cfg[i].compare(0, 13, "antialiasing=")) antialiasing = atoi(cfg[i].c_str() + 13) != 0;
+    }
+    ps3glSetAntialiasing(antialiasing);
     ps3glInit();
     ps3glGetSize(&W, &H);
     S = H / 720.0f;
@@ -739,10 +763,6 @@ void hangar_run(int *argc, char **argv, int max_args)
 
     rebuild_lists();
     check_last_start();
-    for (size_t i = 0; i < cfg.size(); i++) {
-        if (!cfg[i].compare(0, 9, "aircraft=")) cfg_set = trim(cfg[i].substr(9));
-        if (!cfg[i].compare(0, 8, "airport=")) airport = atoi(cfg[i].c_str() + 8) % n_airports;
-    }
     cur = find_set(cfg_set);
     if (cur < 0 && from_args) cur = find_set(from_args);
     if (cur < 0) cur = find_set("c172p");
@@ -788,9 +808,7 @@ void hangar_run(int *argc, char **argv, int max_args)
     argv[n] = 0;
     *argc = n;
 
-    char c[160];
-    snprintf(c, sizeof c, "aircraft=%s\nairport=%d\n", g_set.c_str(), airport);
-    write_file(CFG_FILE, c);
+    save_cfg();
     write_file(STATUS_FILE, "starting " + g_set + "\n");
     g_starting = true;
 
@@ -825,6 +843,7 @@ bool hangar_starting() { return g_starting; }
 void hangar_restart()
 {
     ps3pad_rumble(0.0f, 0);
+    if (g_batch) _exit(1);      /* would start the same failing flight again */
     fflush(stdout);
     fflush(stderr);
     sysProcessExitSpawn2(USRDIR "/EBOOT.BIN", NULL, NULL, NULL, 0, 1001, SYS_PROCESS_SPAWN_STACK_SIZE_1M);
