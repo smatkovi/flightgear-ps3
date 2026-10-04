@@ -17,6 +17,7 @@
 #include <string.h>
 #include <math.h>
 #include <malloc.h>
+#include "dxt.h"
 #include <unistd.h>
 
 #include <ppu-types.h>
@@ -187,6 +188,7 @@ typedef struct {
     u8 levels;          /* mipmap levels uploaded so far (from level 0 on) */
     u8 fresh;           /* new storage the RSX has not used yet */
     u8 chain;           /* the storage has room for all mipmap levels */
+    u8 dxt;             /* DXT compressed, with all mipmap levels */
 } Tex;
 
 /* Larger textures are scaled down: plenty for 720p, and the mipmap chains
@@ -229,6 +231,7 @@ static GLuint list_cur;                 /* list being compiled, 0 if none */
 
 /* statistics for ps3glStats() */
 static u32 st_tex_bytes, st_list_bytes, st_draws, st_verts, st_lists_alive, st_vram_fail, st_mem_fail;
+static u32 st_dxt_textures;
 
 static const GLfloat ident[16] = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
 
@@ -1332,6 +1335,114 @@ static void store_level(GLubyte *dst, u32 W, u32 H, int swz, const GLubyte *src,
     }
 }
 
+/* RSX storage of `size` bytes for a texture's new contents; 0 if there is none */
+static int tex_alloc(Tex *t, u32 size, u32 W, u32 H)
+{
+    if (t->mem && t->bytes == size) {
+        wait_finish();      /* the RSX may still be reading the old texels */
+        return 1;
+    }
+    defer_free(t->mem);
+    st_tex_bytes -= t->bytes;
+    t->bytes = 0;
+    t->mem = rsxMemalign(128, size);
+    if (!t->mem) {
+        struct mallinfo mi = mallinfo();
+        ps3glLog("ps3gl: out of RSX memory for a %ux%u texture (textures %uK, lists %uK, heap %luK)",
+                 W, H, st_tex_bytes >> 10, st_list_bytes >> 10, (unsigned long)mi.uordblks >> 10);
+        t->has_data = GL_FALSE;
+        dirty |= D_TEX;
+        return 0;
+    }
+    t->bytes = size;
+    st_tex_bytes += size;
+    t->fresh = 1;
+    return 1;
+}
+
+/* The source image as RGBA8 rows, W x H (averaging boxes of a larger source) */
+static void store_rgba(GLubyte *dst, u32 W, u32 H, const GLubyte *src, u32 w, u32 h,
+                       u32 stride, int comps, GLenum format, GLint ifmt)
+{
+    u32 fx = w / W, fy = h / H, n = fx * fy, x, y, i, j;
+    GLubyte px[4];
+    for (y = 0; y < H; y++)
+        for (x = 0; x < W; x++) {
+            u32 sum[4] = { 0, 0, 0, 0 };
+            GLubyte *d = dst + 4 * ((size_t)y * W + x);
+            for (j = 0; j < fy; j++)
+                for (i = 0; i < fx; i++) {
+                    texel(px, src + (size_t)(y * fy + j) * stride + (size_t)(x * fx + i) * comps,
+                          comps, format, ifmt);
+                    sum[0] += px[1]; sum[1] += px[2]; sum[2] += px[3]; sum[3] += px[0];
+                }
+            d[0] = sum[0] / n; d[1] = sum[1] / n; d[2] = sum[2] / n; d[3] = sum[3] / n;
+        }
+}
+
+/* The next smaller mipmap level of an RGBA8 image (2x2 box filter) */
+static void half_rgba(GLubyte *dst, const GLubyte *src, u32 sw, u32 sh)
+{
+    u32 dw = sw > 1 ? sw / 2 : 1, dh = sh > 1 ? sh / 2 : 1, x, y, c;
+    for (y = 0; y < dh; y++)
+        for (x = 0; x < dw; x++) {
+            u32 x0 = sw > 1 ? 2 * x : 0, x1 = sw > 1 ? 2 * x + 1 : 0;
+            u32 y0 = sh > 1 ? 2 * y : 0, y1 = sh > 1 ? 2 * y + 1 : 0;
+            for (c = 0; c < 4; c++)
+                dst[(y * dw + x) * 4 + c] = (src[(y0 * sw + x0) * 4 + c] + src[(y0 * sw + x1) * 4 + c] +
+                                             src[(y1 * sw + x0) * 4 + c] + src[(y1 * sw + x1) * 4 + c] + 2) / 4;
+        }
+}
+
+/* Stores a texture DXT compressed, with all mipmap levels made here (the
+   compression runs on the SPUs, see dxt.c); 0 if that was not possible. */
+static int tex_store_dxt(Tex *t, u32 W, u32 H, const GLubyte *src, u32 w, u32 h,
+                         u32 stride, int comps, GLenum format, GLint ifmt)
+{
+    int n = ilog2(W > H ? W : H) + 1, i, alpha = 0;
+    u32 rgba_size = chain_offset(W, H, n), size = 0, lw, lh;
+    GLubyte *rgba, *out, *lv;
+
+    rgba = (GLubyte *)memalign(128, rgba_size);
+    if (!rgba) return 0;
+    store_rgba(rgba, W, H, src, w, h, stride, comps, format, ifmt);
+    if (comps == 4)
+        for (i = 3; i < (int)(W * H * 4) && !alpha; i += 4) alpha = rgba[i] != 255;
+    for (i = 0, lv = rgba; i + 1 < n; i++) {
+        lw = lvl_dim(W, i);
+        lh = lvl_dim(H, i);
+        half_rgba(lv + lw * lh * 4, lv, lw, lh);
+        lv += lw * lh * 4;
+    }
+    for (i = 0; i < n; i++) size += dxt_level_size(lvl_dim(W, i), lvl_dim(H, i), alpha);
+    out = (GLubyte *)memalign(128, size);
+    if (!out) {
+        free(rgba);
+        return 0;
+    }
+    dxt_compress_chain(rgba, W, H, n, alpha, out);
+    free(rgba);
+    if (!tex_alloc(t, size, W, H)) {
+        free(out);
+        return 1;           /* no room in RSX memory: the texture stays empty */
+    }
+    memcpy(t->mem, out, size);
+    free(out);
+
+    t->w = W;
+    t->h = H;
+    t->levels = n;
+    t->chain = 1;
+    t->swz = 1;
+    t->dxt = 1;
+    /* compressed levels are blocks of 4x4 in rows, one level after the other */
+    t->t.format = (alpha ? GCM_TEXTURE_FORMAT_DXT45 : GCM_TEXTURE_FORMAT_DXT1) | GCM_TEXTURE_FORMAT_SWZ;
+    t->t.mipmap = n;
+    t->t.pitch = 0;
+    st_dxt_textures++;
+    return 1;
+}
+
 void glTexImage2D(GLenum target, GLint level, GLint ifmt, GLsizei w, GLsizei h, GLint border,
                   GLenum format, GLenum type, const GLvoid *pixels)
 {
@@ -1364,6 +1475,7 @@ void glTexImage2D(GLenum target, GLint level, GLint ifmt, GLsizei w, GLsizei h, 
 
     if (level > 0) {
         /* a mipmap level (PLIB sends them all): into the chain, in order */
+        if (t->dxt) return;
         lvl = level - t->shift;
         if (!t->chain || !t->mem || !pixels || lvl <= 0 || lvl != t->levels) return;
         if (lvl > ilog2(t->w > t->h ? t->w : t->h)) return;
@@ -1389,6 +1501,13 @@ void glTexImage2D(GLenum target, GLint level, GLint ifmt, GLsizei w, GLsizei h, 
     while ((w >> t->shift) > MAX_TEX_DIM || (h >> t->shift) > MAX_TEX_DIM) t->shift++;
     W = lvl_dim(w, t->shift);
     H = lvl_dim(h, t->shift);
+    t->dxt = 0;
+    if (pixels && (comps == 3 || comps == 4) && W >= 16 && H >= 16 &&
+        (W & (W - 1)) == 0 && (H & (H - 1)) == 0 &&
+        tex_store_dxt(t, W, H, (const GLubyte *)pixels, w, h, stride, comps, format, ifmt)) {
+        if (t->mem && t->dxt) goto descriptor;
+        return;
+    }
     t->swz = (W & (W - 1)) == 0 && (H & (H - 1)) == 0 && pixels != NULL;
     size = W * H * 4;
     t->chain = 0;
@@ -1396,27 +1515,7 @@ void glTexImage2D(GLenum target, GLint level, GLint ifmt, GLsizei w, GLsizei h, 
         size = chain_offset(W, H, ilog2(W > H ? W : H) + 1);
         t->chain = 1;
     }
-    if (t->mem && t->bytes == size && t->w == W && t->h == H) {
-        wait_finish();      /* same size: the RSX may still be reading the old texels */
-    } else {
-        defer_free(t->mem);
-        st_tex_bytes -= t->bytes;
-        t->bytes = 0;
-        t->mem = rsxMemalign(128, size);
-        if (!t->mem) {
-            {
-                struct mallinfo mi = mallinfo();
-                ps3glLog("ps3gl: out of RSX memory for a %ux%u texture (textures %uK, lists %uK, heap %luK)",
-                         W, H, st_tex_bytes >> 10, st_list_bytes >> 10, (unsigned long)mi.uordblks >> 10);
-            }
-            t->has_data = GL_FALSE;
-            dirty |= D_TEX;
-            return;
-        }
-        t->bytes = size;
-        st_tex_bytes += size;
-        t->fresh = 1;
-    }
+    if (!tex_alloc(t, size, W, H)) return;
     t->w = W;
     t->h = H;
     t->levels = 1;
@@ -1439,6 +1538,8 @@ void glTexImage2D(GLenum target, GLint level, GLint ifmt, GLsizei w, GLsizei h, 
 
     t->t.format = GCM_TEXTURE_FORMAT_A8R8G8B8 | (t->swz ? GCM_TEXTURE_FORMAT_SWZ : GCM_TEXTURE_FORMAT_LIN);
     t->t.mipmap = 1;
+    t->t.pitch = t->swz ? 0 : W * 4;
+descriptor:
     t->t.dimension = GCM_TEXTURE_DIMS_2D;
     t->t.cubemap = GCM_FALSE;
     t->t.remap = (GCM_TEXTURE_REMAP_TYPE_REMAP << GCM_TEXTURE_REMAP_TYPE_B_SHIFT)
@@ -1453,7 +1554,6 @@ void glTexImage2D(GLenum target, GLint level, GLint ifmt, GLsizei w, GLsizei h, 
     t->t.height = H;
     t->t.depth = 1;
     t->t.location = GCM_LOCATION_RSX;
-    t->t.pitch = t->swz ? 0 : W * 4;
     rsxAddressToOffset(t->mem, &t->t.offset);
     t->ifmt = ifmt;
     t->has_data = GL_TRUE;
@@ -1673,8 +1773,8 @@ static u32 last_draws, last_verts;
 
 void ps3glStats(char *buf, int len)
 {
-    snprintf(buf, len, "rsx: tex %uK, lists %uK in %u, draws %u, verts %u%s%s",
-             st_tex_bytes >> 10, st_list_bytes >> 10, st_lists_alive, last_draws, last_verts,
+    snprintf(buf, len, "rsx: tex %uK (%u dxt), lists %uK in %u, draws %u, verts %u%s%s",
+             st_tex_bytes >> 10, st_dxt_textures, st_list_bytes >> 10, st_lists_alive, last_draws, last_verts,
              st_vram_fail ? ", RSX MEMORY FULL" : "", st_mem_fail ? ", MAIN MEMORY FULL" : "");
 }
 
@@ -1762,6 +1862,7 @@ void ps3glInit(void)
     }
     host = memalign(1024 * 1024, HOST_SIZE);
     rsxInit(&ctx, CB_SIZE, HOST_SIZE, host);
+    dxt_init();             /* texture compression on the SPUs */
     for (i = 0; i < sizeof modes / sizeof modes[0] && !ok; i++) ok = set_mode(modes[i]);
     if (!ok) { ps3glLog("ps3gl: no usable video mode"); exit(1); }
     scr_w = vmode.width;

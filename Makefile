@@ -108,7 +108,18 @@ shaders:
 	@for f in $(SHD)/*.fcg; do echo CG $$f; $(CGCOMP) -f $$f $${f%.fcg}.fpo || exit 1; done
 	@python3 $(R)/ps3gl/mkshaders.py $(R)/ps3gl/src/shaders.h $(SHD_BIN)
 .PHONY: shaders
-$(eval $(call deflib,ps3gl,$(R)/ps3gl/src/ps3gl.c $(R)/ps3gl/src/glu.c))
+$(eval $(call deflib,ps3gl,$(R)/ps3gl/src/ps3gl.c $(R)/ps3gl/src/glu.c $(R)/ps3gl/src/dxt.c \
+    $(B)/gen/dxt_spu_bin.c))
+
+# ps3gl's SPU program (DXT texture compression), embedded as a byte array
+$(B)/spu/dxt_spu.elf: $(R)/ps3gl/spu/dxt_spu.c $(R)/ps3gl/src/stb_dxt.h $(R)/ps3gl/src/dxt.h
+	@mkdir -p $(dir $@)
+	@echo SPU dxt_spu.c
+	@spu-gcc -O3 -Wall -I/ps3dev/spu/include -o $@ $< -L/ps3dev/spu/lib -lsputhread
+$(B)/gen/dxt_spu_bin.c: $(B)/spu/dxt_spu.elf
+	@mkdir -p $(dir $@)
+	@python3 -c "import sys; d = open(sys.argv[1], 'rb').read(); \
+	  print('const unsigned char dxt_spu_bin[] __attribute__((aligned(128))) = {' + ','.join(map(str, d)) + '};')" $< > $@
 
 # ---- port glue: controller, audio stub, libc additions, the hangar ----
 $(eval $(call deflib,port,$(R)/port/ps3pad.c $(R)/port/al_stub.c $(R)/port/ps3_libc.c \
