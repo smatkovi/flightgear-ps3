@@ -26,6 +26,7 @@ typedef struct {
 void ps3pad_init(void);
 void ps3pad_poll(void);                 /* once per frame */
 const ps3pad_state *ps3pad_get(void);
+void ps3pad_report(char *buf, int n);    /* diagnostics: sensor mode and raw values */
 
 #ifdef __cplusplus
 }

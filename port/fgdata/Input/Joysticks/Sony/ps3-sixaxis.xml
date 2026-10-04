@@ -17,6 +17,10 @@ does the same) still works when the controller is held still.
 
 If roll or pitch goes the wrong way, flip the sign of <factor> on axis 4
 (roll) or axis 5 (pitch). Larger <dead-band> = calmer, less sensitive.
+
+The right stick has the response curve of Nasal/ps3controls.nas: fine near
+the centre, 75 % at full deflection; the last argument scales it further.
+The d-pad looks around, R3 looks straight ahead again.
 -->
 
 <PropertyList>
@@ -46,20 +50,35 @@ If roll or pitch goes the wrong way, flip the sign of <factor> on axis 4
  <axis n="2">
   <desc>Aileron (right stick)</desc>
   <binding>
-   <command>property-scale</command>
-   <property>/controls/flight/aileron</property>
-   <squared type="bool">true</squared>
+   <command>nasal</command>
+   <script>ps3controls.stick("/controls/flight/aileron", 1.0)</script>
   </binding>
  </axis>
 
  <axis n="3">
   <desc>Elevator (right stick)</desc>
   <binding>
-   <command>property-scale</command>
-   <property>/controls/flight/elevator</property>
-   <factor type="double">-1.0</factor>
-   <squared type="bool">true</squared>
+   <command>nasal</command>
+   <script>ps3controls.stick("/controls/flight/elevator", -1.0)</script>
   </binding>
+ </axis>
+
+ <axis n="1">
+  <desc>Elevator trim (left stick up/down, full deflection)</desc>
+  <low>
+   <repeatable type="bool">true</repeatable>
+   <binding>
+    <command>nasal</command>
+    <script>controls.elevatorTrim(1)</script>
+   </binding>
+  </low>
+  <high>
+   <repeatable type="bool">true</repeatable>
+   <binding>
+    <command>nasal</command>
+    <script>controls.elevatorTrim(-1)</script>
+   </binding>
+  </high>
  </axis>
 
  <axis n="0">
@@ -163,20 +182,46 @@ If roll or pitch goes the wrong way, flip the sign of <factor> on axis 4
  </button>
 
  <button n="12">
-  <desc>Elevator trim down (d-pad up)</desc>
+  <desc>Look up (d-pad up)</desc>
   <repeatable type="bool">true</repeatable>
   <binding>
    <command>nasal</command>
-   <script>controls.elevatorTrim(1)</script>
+   <script>view.panViewPitch(1)</script>
   </binding>
  </button>
 
  <button n="13">
-  <desc>Elevator trim up (d-pad down)</desc>
+  <desc>Look down (d-pad down)</desc>
   <repeatable type="bool">true</repeatable>
   <binding>
    <command>nasal</command>
-   <script>controls.elevatorTrim(-1)</script>
+   <script>view.panViewPitch(-1)</script>
+  </binding>
+ </button>
+
+ <button n="14">
+  <desc>Look left (d-pad left)</desc>
+  <repeatable type="bool">true</repeatable>
+  <binding>
+   <command>nasal</command>
+   <script>view.panViewDir(1)</script>
+  </binding>
+ </button>
+
+ <button n="15">
+  <desc>Look right (d-pad right)</desc>
+  <repeatable type="bool">true</repeatable>
+  <binding>
+   <command>nasal</command>
+   <script>view.panViewDir(-1)</script>
+  </binding>
+ </button>
+
+ <button n="11">
+  <desc>Look ahead again (R3)</desc>
+  <binding>
+   <command>nasal</command>
+   <script>view.resetView()</script>
   </binding>
  </button>
 

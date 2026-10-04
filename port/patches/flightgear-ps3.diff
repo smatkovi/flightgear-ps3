@@ -1,4 +1,4 @@
-diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/FDM/LaRCsim/LaRCsim.cxx FlightGear-0.9.10.ps3/src/FDM/LaRCsim/LaRCsim.cxx
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/FDM/LaRCsim/LaRCsim.cxx FlightGear-0.9.10.ps3/src/FDM/LaRCsim/LaRCsim.cxx
 --- FlightGear-0.9.10/src/FDM/LaRCsim/LaRCsim.cxx	2006-02-23 15:53:43.000000000 +0100
 +++ FlightGear-0.9.10.ps3/src/FDM/LaRCsim/LaRCsim.cxx	2026-10-04 11:48:32.405185338 +0200
 @@ -36,6 +36,9 @@
@@ -21,7 +21,7 @@ diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/FDM/LaRCsim/LaRCsim.cxx Fligh
      ls_toplevel_init( 0.0, (char *)(aero->getStringValue()) );
  
      lsic=new LaRCsimIC; //this needs to be brought up after LaRCsim is
-diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/FDM/UIUCModel/uiuc_wrapper.cpp FlightGear-0.9.10.ps3/src/FDM/UIUCModel/uiuc_wrapper.cpp
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/FDM/UIUCModel/uiuc_wrapper.cpp FlightGear-0.9.10.ps3/src/FDM/UIUCModel/uiuc_wrapper.cpp
 --- FlightGear-0.9.10/src/FDM/UIUCModel/uiuc_wrapper.cpp	2006-02-23 15:53:47.000000000 +0100
 +++ FlightGear-0.9.10.ps3/src/FDM/UIUCModel/uiuc_wrapper.cpp	2026-10-04 11:48:21.863221278 +0200
 @@ -117,7 +117,16 @@
@@ -122,7 +122,7 @@ diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/FDM/UIUCModel/uiuc_wrapper.cp
    //if (use_uiuc_network)
    //  uiuc_network(2);
  }
-diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/GUI/gui.cxx FlightGear-0.9.10.ps3/src/GUI/gui.cxx
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/GUI/gui.cxx FlightGear-0.9.10.ps3/src/GUI/gui.cxx
 --- FlightGear-0.9.10/src/GUI/gui.cxx	2006-02-23 15:53:47.000000000 +0100
 +++ FlightGear-0.9.10.ps3/src/GUI/gui.cxx	2026-10-04 00:19:51.619521980 +0200
 @@ -66,7 +66,12 @@
@@ -138,12 +138,12 @@ diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/GUI/gui.cxx FlightGear-0.9.10
      puSetDefaultStyle         ( PUSTYLE_SMALL_SHADED ); //PUSTYLE_DEFAULT
      puSetDefaultColourScheme  (0.8, 0.8, 0.9, 1);
  
-diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Include/config.h FlightGear-0.9.10.ps3/src/Include/config.h
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Include/config.h FlightGear-0.9.10.ps3/src/Include/config.h
 --- FlightGear-0.9.10/src/Include/config.h	1970-01-01 01:00:00.000000000 +0100
 +++ FlightGear-0.9.10.ps3/src/Include/config.h	2026-10-04 00:15:08.404400382 +0200
 @@ -0,0 +1 @@
 +#include <ps3_config.h>
-diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Include/version.h FlightGear-0.9.10.ps3/src/Include/version.h
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Include/version.h FlightGear-0.9.10.ps3/src/Include/version.h
 --- FlightGear-0.9.10/src/Include/version.h	1970-01-01 01:00:00.000000000 +0100
 +++ FlightGear-0.9.10.ps3/src/Include/version.h	2026-10-04 00:19:04.757576337 +0200
 @@ -0,0 +1,32 @@
@@ -179,7 +179,7 @@ diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Include/version.h FlightGear-
 +
 +
 +#endif // _FLIGHTGEAR_VERSION_H
-diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Main/bootstrap.cxx FlightGear-0.9.10.ps3/src/Main/bootstrap.cxx
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Main/bootstrap.cxx FlightGear-0.9.10.ps3/src/Main/bootstrap.cxx
 --- FlightGear-0.9.10/src/Main/bootstrap.cxx	2006-03-28 23:18:32.000000000 +0200
 +++ FlightGear-0.9.10.ps3/src/Main/bootstrap.cxx	2026-10-04 00:31:49.489647076 +0200
 @@ -144,6 +144,11 @@
@@ -194,7 +194,96 @@ diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Main/bootstrap.cxx FlightGear
  // Main entry point; catch any exceptions that have made it this far.
  int main ( int argc, char **argv ) {
  
-diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Sound/morse.cxx FlightGear-0.9.10.ps3/src/Sound/morse.cxx
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Main/splash.cxx FlightGear-0.9.10.ps3/src/Main/splash.cxx
+--- FlightGear-0.9.10/src/Main/splash.cxx	2006-02-23 15:53:53.000000000 +0100
++++ FlightGear-0.9.10.ps3/src/Main/splash.cxx	2026-10-04 15:15:03.647361862 +0200
+@@ -37,6 +37,10 @@
+ #include <string.h>
+ 
+ #include <plib/pu.h>
++#ifdef __PS3__
++#include <strings.h>
++#include <plib/ssg.h>
++#endif
+ #include <simgear/compiler.h>
+ 
+ #include SG_GLU_H
+@@ -108,6 +112,33 @@
+     } else
+         tpath.append( splash_texture );
+ 
++#ifdef __PS3__
++    // Aircraft made for later FlightGear versions have PNG splash screens.
++    // SGTexture reads only SGI images, and usable() only checks the texture
++    // id, so they came out white. The port's PLIB PNG loader puts them into
++    // the bound texture (directly: ssgLoadTexture() knows the formats only
++    // after ssgInit()). A splash that can't be read is replaced by a default.
++    if (!strcasecmp(tpath.extension().c_str(), "png")) {
++        if (ssgLoadPNG(tpath.c_str(), 0))
++            return;
++    } else {
++        splash.read_rgb_texture(tpath.c_str());
++        if (!splash.texture()) {
++            SGPath fg_tpath = tpath;
++            fg_tpath.concat( ".gz" );
++            splash.read_rgb_texture(fg_tpath.c_str());
++        }
++        if (splash.texture()) {
++            splash.select();
++            return;
++        }
++    }
++    SG_LOG( SG_GENERAL, SG_ALERT, "Error in loading splash screen texture "
++            << tpath.str() << ", using Textures/Splash1.rgb" );
++    tpath.set( globals->get_fg_root() );
++    tpath.append( "Textures/Splash1.rgb" );
++#endif
++
+     splash.read_rgb_texture(tpath.c_str());
+     if (!splash.usable())
+     {
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Scripting/NasalSys.cxx FlightGear-0.9.10.ps3/src/Scripting/NasalSys.cxx
+--- FlightGear-0.9.10/src/Scripting/NasalSys.cxx	2006-03-20 17:01:27.000000000 +0100
++++ FlightGear-0.9.10.ps3/src/Scripting/NasalSys.cxx	2026-10-04 15:01:21.662315449 +0200
+@@ -263,6 +263,16 @@
+     return nasal->cmdArgGhost();
+ }
+ 
++#ifdef __PS3__
++// _numparams(func): how many parameters a Nasal function declares (-1 if
++// it is none). setlistener() in globals.nas uses it to tell listeners
++// written for FlightGear 1.9 (func(n) { ... }) from 0.9.10 ones.
++static naRef f_numparams(naContext c, naRef me, int argc, naRef* args)
++{
++    return naNum(argc > 0 ? naNumParams(args[0]) : -1);
++}
++#endif
++
+ // Sets up a property interpolation.  The first argument is either a
+ // ghost (SGPropertyNode_ptr*) or a string (global property path) to
+ // interpolate.  The second argument is a vector of pairs of
+@@ -332,6 +342,9 @@
+     { "_setlistener", f_setlistener },
+     { "removelistener", f_removelistener },
+     { "_cmdarg",  f_cmdarg },
++#ifdef __PS3__
++    { "_numparams",  f_numparams },
++#endif
+     { "_interpolate",  f_interpolate },
+     { "rand",  f_rand },
+     { "srand",  f_srand },
+@@ -453,6 +466,10 @@
+ {
+     SG_LOG(SG_NASAL, SG_ALERT,
+            "Nasal runtime error: " << naGetError(context));
++#ifdef __PS3__
++    if(naStackDepth(context) < 1)       // error in a C function called directly
++        return;
++#endif
+     SG_LOG(SG_NASAL, SG_ALERT,
+            "  at " << naStr_data(naGetSourceFile(context, 0)) <<
+            ", line " << naGetLine(context, 0));
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Sound/morse.cxx FlightGear-0.9.10.ps3/src/Sound/morse.cxx
 --- FlightGear-0.9.10/src/Sound/morse.cxx	2006-02-23 15:53:56.000000000 +0100
 +++ FlightGear-0.9.10.ps3/src/Sound/morse.cxx	2026-10-04 11:59:11.654001863 +0200
 @@ -192,7 +192,7 @@

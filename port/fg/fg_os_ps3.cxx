@@ -3,7 +3,10 @@
 // There is one fixed-size "window" (the display), no mouse and no keyboard
 // yet; input comes in through the PLIB joystick driver (port/jsPS3.cxx).
 // The process entry point is here: it sets up the environment FlightGear
-// expects (argv, $HOME, a log file) and runs FlightGear's own main().
+// expects (argv, $HOME, a log file), shows the hangar (port/hangar: aircraft
+// and airport choice, downloads) and runs FlightGear's own main(). If
+// FlightGear stops with an error while starting, the program restarts into
+// the hangar, which then shows the error.
 //
 // FlightGear runs on the primary thread. Its stack is capped at 1 MB, which is
 // also what FlightGear 0.9.10 had on Windows. A second thread with a bigger
@@ -18,7 +21,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <malloc.h>
+
+#include <string>
 
 #include <sys/process.h>
 #include <sysutil/sysutil.h>
@@ -28,6 +34,7 @@
 #include <ps3gl.h>
 #include "../ps3pad.h"
 #include "../ps3_debug.h"
+#include "../hangar/hangar.h"
 
 #include <Main/fg_os.hxx>
 #include <Main/fg_props.hxx>
@@ -84,17 +91,51 @@ void fgOSExit(int code)
 
 static void heartbeat(unsigned long frame)
 {
-    char st[160];
+    char st[256];
     struct mallinfo mi = mallinfo();
     ps3glStats(st, sizeof st);
     ps3glLog("frame %lu: heap %luK in use, %luK from the system; %s", frame,
              (unsigned long)mi.uordblks >> 10, (unsigned long)mi.arena >> 10, st);
+    ps3pad_report(st, sizeof st);
+    ps3glLog("%s", st);
+}
+
+// What went wrong while the aircraft loaded, judging by the log (empty if nothing).
+static std::string aircraft_problems()
+{
+    std::string log, w;
+    int fd = open(PS3_USRDIR "/fgfs.log", O_RDONLY);
+    char buf[16384];
+    int n;
+    if (fd < 0) return w;
+    while ((n = read(fd, buf, sizeof buf)) > 0) log.append(buf, n);
+    close(fd);
+    // "pick" animations (clickable cockpits) need a mouse anyway
+    bool anim = false;
+    for (size_t p = 0; !anim && (p = log.find("Unknown animation type ", p)) != std::string::npos; p++)
+        anim = log.compare(p + 23, 4, "pick") != 0;
+    if (log.find("Failed to load aircraft from") != std::string::npos)
+        w = "its 3D model could not be loaded (it was made for a newer FlightGear)";
+    else if (log.find("Failed to load submodel") != std::string::npos || anim)
+        w = "parts of its 3D model are missing or do not move";
+    if (log.find("Nasal runtime error") != std::string::npos ||
+        log.find("Nasal parse error") != std::string::npos)
+        w += std::string(w.empty() ? "" : "; ") + "some of its scripts fail";
+    return w;
 }
 
 void fgOSMainLoop()
 {
     unsigned long frame = 0;
+    bool running = false;
     while (1) {
+        if (!running && fgGetBool("/sim/sceneryloaded")) {
+            std::string w = aircraft_problems();
+            running = true;
+            hangar_mark_running(w.c_str());
+            if (!w.empty())     // shown by Nasal/ps3hangar.nas
+                fgSetString("/sim/ps3/aircraft-warning", ("This aircraft has problems: " + w + ".").c_str());
+        }
 #ifdef PS3_DEBUG
         ps3_syscalls_check("loop");
 #endif
@@ -134,8 +175,23 @@ void fgOSPuInit()
 
 static void sysutil_callback(u64 status, u64 param, void *usrdata)
 {
-    if (status == SYSUTIL_EXIT_GAME)
+    if (status == SYSUTIL_EXIT_GAME) {
+        hangar_mark_quit();
         exit(0);
+    }
+}
+
+// FlightGear ends fatal errors with exit(nonzero). While an aircraft is still
+// loading, go back to the hangar instead, which shows the error.
+// (Linked with -Wl,--wrap=exit.)
+extern "C" void __real_exit(int code) __attribute__((noreturn));
+extern "C" void __wrap_exit(int code)
+{
+    if (code != 0 && hangar_starting()) {
+        hangar_mark_failed(code);
+        hangar_restart();
+    }
+    __real_exit(code);
 }
 
 static int ps3_argc;
@@ -164,7 +220,9 @@ int main(int argc, char **argv)
 
     // stdout/stderr go nowhere on a console; keep them in a file. Both streams
     // append, so neither overwrites what the other wrote. If the file cannot
-    // be created, leave the streams alone rather than lose them.
+    // be created, leave the streams alone rather than lose them. The previous
+    // log is kept for the hangar's error report.
+    rename(PS3_USRDIR "/fgfs.log", PS3_USRDIR "/fgfs.prev.log");
     FILE *log = fopen(PS3_USRDIR "/fgfs.log", "w");
     if (log) {
         fclose(log);
@@ -182,5 +240,11 @@ int main(int argc, char **argv)
     read_args_file();
     ps3_argv[ps3_argc] = 0;
 
-    return fgfs_main(ps3_argc, ps3_argv);
+    hangar_run(&ps3_argc, ps3_argv, PS3_MAX_ARGS);
+    int rc = fgfs_main(ps3_argc, ps3_argv);
+    if (rc != 0 && hangar_starting()) {
+        hangar_mark_failed(rc);
+        hangar_restart();
+    }
+    return rc;
 }

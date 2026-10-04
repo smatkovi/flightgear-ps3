@@ -23,7 +23,8 @@ sudo -n prlimit --pid $$ --memlock=2147483648:2147483648 2>/dev/null || echo "wa
 : > "$HOME/.cache/rpcs3/RPCS3.log"
 : > "$HOME/.cache/rpcs3/TTY.log" 2>/dev/null || true
 U="$HOME/.config/rpcs3/dev_hdd0/game/FGFS00910/USRDIR"
-rm -f "$U/ps3gl.log" "$U/fgfs.log"
+rm -f "$U/ps3gl.log"
+[ ! -f "$U/fgfs.log" ] || mv "$U/fgfs.log" "$U/fgfs.prev.log"   # as the game does; the hangar reads it
 cd "$R"
 nohup rpcs3 --no-gui "$ELF" > "$R/logs/rpcs3_stdout.log" 2>&1 &
 echo "rpcs3 pid $!"

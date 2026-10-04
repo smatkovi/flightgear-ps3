@@ -12,6 +12,9 @@ DATA="$R/fgdata_x/fgfs-base-0.9.10.orig"
 DEST=/dev_hdd0/game/FGFS00910/USRDIR/fgdata
 EXCL="--exclude Aircraft/UIUC/ --exclude Docs/"   # UIUC aircraft need 118 MB more than there is
 [ "$1" = --no-hires ] && EXCL="$EXCL --exclude Textures.high/"
+# aircraft that are not in the base package (installed through the hangar in RPCS3) are downloads
+BASE=$(tar tzf "$R/dl/fgfs-base_0.9.10.orig.tar.gz" | awk -F/ '$2 == "Aircraft" && NF > 3 { print $3 }' | sort -u)
+for d in $(ls "$DATA/Aircraft"); do echo "$BASE" | grep -qx "$d" || EXCL="$EXCL --exclude Aircraft/$d/"; done
 
 curl -s --max-time 5 "http://$PS3/cpursx.ps3" > /dev/null || { echo "PS3 at $PS3 does not answer (webMAN)"; exit 1; }
 [ -f "$R/fgfs-ps3.pkg" ] || { echo "build the package first: ./pkg.sh"; exit 1; }

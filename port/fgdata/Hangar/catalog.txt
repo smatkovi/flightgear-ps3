@@ -1,0 +1,217 @@
+# FlightGear 1.x aircraft archive, mirrors.ibiblio.org/flightgear/ftp/Archive/Version-1.x/Aircraft-1.9.1/
+14bis_20080922.zip	1569923	14bis	14bis			14bis Santos DUMONT
+707_20080509.zip	363074	707	707	jsb	alpha	Boeing 707
+737-300_20071215.zip	2922069	737-300	737-300	jsb	early-production	Boeing 737-300
+747-200_1.1.zip	1669661	747-200	747-200	jsb	early-production	Boeing 747-200
+747_20071215.zip	2962721	747	747-100,747	jsb		Boeing 747-100 (JSBSim)
+777-200_20080400.zip	2701134	777-200	777-200ER	yasim	Development	Boeing 777-200ER
+787_02_2008.zip	5881757	787	787	yasim	Development	Boeing 787-8
+A-10_20081023.zip	7886360	A-10	A-10	yasim	beta	Fairchild A-10 (YASim FDM)
+A-6E_20081124.zip	4555457	A-6E	A-6E	yasim	alpha	Grumman A-6E (YASim FDM)
+A24-Viking_20080427.zip	1397101	A24-Viking	a24,a24-yasim			Aeroprakt A 24 Viking
+A300_20061009.zip	384996	A300	A300	jsb		Airbus A300
+A320-family_20070115.zip	536437	A320-family	A320-111,A320-131	jsb		Airbus A320-100 with CFM56-5A1 engines
+A320_20070115.zip	353056	A320	A320	jsb	beta	Airbus A320-200
+A380_1.0.zip	2636124	A380	A380-House,A380	jsb	beta	Airbus A380-House
+a4_20080828.zip	838833	a4	a4,a4-uiuc,a4f	yasim		Douglas A4 Skyhawk (YASim)
+A6M2_20081219.zip	1768338	A6M2	A6M2-jsbsim,A6M2	jsb		A6M2 Zero (JSBSim)
+Aerostar-700_20080805.zip	1797420	Aerostar-700	aerostar700	yasim	development	Aerostar Super 700
+airwaveXtreme150_20050430.zip	29519	airwaveXtreme150	airwaveXtreme150,airwaveXtreme150-v1-nl-uiuc			Alias for airwaveXtreme150-v1-nl-uiuc.
+Albatross_20080304.zip	1216168	Albatross	Albatross	yasim	beta	Grumman Albatross
+Alouette-II_20081215.zip	7091221	Alouette-II	alouette2,alouette2F	yasim		Alouette II (Yasim)
+Alouette-III_20080304.zip	1816537	Alouette-III	Alouette-III	yasim	alpha, "GPL Copyright"	Alouette_III_Helicopter
+Alphajet_20081130.zip	4606677	Alphajet	alphajet			Dassault/Dornier Alphajet
+AN-225_20071114.zip	524073	AN-225	AN-225	yasim	beta	Antonov AN-225 heavy/outsize cargo aircraft (YASim fdm)
+an2_20080828.zip	23467266	an2	an2	jsb	early-production	Legendary Russian AN-2
+ANT-20_20080813.zip	2571632	ANT-20	ant20			Tupolev ANT 20 Maxime Gorky
+apache_20080617.zip	4194432	apache	apache	yasim	alpha, "GPL Copyright"	Apache AH64 D Longbow
+AR-234_20080805.zip	3869904	AR-234	ar234-v1,ar234-v9			Arado Ar 234 (with trolley)
+Arsenal-VG33_20080808.zip	4450451	Arsenal-VG33	vg33			Arsenal VG33
+ASK21_20070701.zip	1832055	ASK21	ask21	yasim	early-production	Schleicher ASK 21 Glider
+asw20_20050430.zip	286010	asw20	asw20,asw20-v1-nl-uiuc			Alias for asw20-v1-nl-uiuc.
+B-17_20081126.zip	3852536	B-17	b17			Boeing B 17
+B-1B_20081214.zip	6363738	B-1B	B-1B	yasim	alpha	Rockwell B-1B Lancer
+B-2_20080304.zip	1269213	B-2	B-2	yasim	alpha	Northrop B-2 Spirit
+B-52F_20071130.zip	1017405	B-52F	B-52F	yasim	beta	Boeing B-52 F in Arclight colour scheme
+b1900d_20081030.zip	3135425	b1900d	b1900d	yasim	developement	Beechcraft B1900D
+b29_20081030.zip	4059101	b29	b29-jsbsim,b29-magic,b29,b29-yasim	jsb		
+B737_20050614.zip	702038	B737	B737	jsb		737-300
+BAC-TSR2_20080103.zip	442614	BAC-TSR2	BAC-TSR2	yasim	alpha	BAC TSR2 Prototype (YASim FDM)
+beaufighter_20081207.zip	8585713	beaufighter	beaufighter	yasim	beta	Bristol Beaufighter TF X
+beech99_20080304.zip	4107137	beech99	beech99-v1-uiuc,beech99-yasim	larcsim		Beech 99
+Bernard-HV220_20080808.zip	2188415	Bernard-HV220	hv220			Bernard HV 220
+bf109_20081023.zip	15446002	bf109	bf109g	yasim	production	Messerschmitt BF-109 G14
+bleriot-XI_20080304.zip	2558704	bleriot-XI	bleriot-XI,bleriot-XI-yasim			Bleriot XI
+bluebird_8.7.zip	1425598	bluebird	bluebird-09,bluebird-osg,bluebird			Bluebird Explorer Hovercraft for FlightGear version 0.9.10
+bo105_20081214.zip	1454021	bo105	bo105	yasim	early-production	Eurocopter Bo105
+bocian_20080722.zip	10048497	bocian	bocian	yasim	alpha	Bocian 1E
+Boeing314_1.3.zip	1319868	Boeing314	Boeing314	jsb	early-production	Boeing 314-A
+Buccaneer_0.1.zip	25394052	Buccaneer	buccaneer-obs,buccaneer,buccaneer-wingman	null	alpha	Blackburn Buccaneer S2(Observer)
+Bugatti_20080922.zip	2499763	Bugatti	bugatti			Bugatti model 100P
+BV-141_20081118.zip	6740344	BV-141	bv141			Blohm und Voss BV141
+C-2A_20081220.zip	4486413	C-2A	c-2a			Grumman C 2A
+C130_20081122.zip	5033407	C130	c130			C130 Hercules
+c150_20080304.zip	5187971	c150	c150	jsb	alpha	Cessna 150L
+c172p_20081214.zip	11442119	c172p	c172p-2dpanel,c172p-panel-only,c172p			Cessna 172P Skyhawk (1981 model), 2D panel
+c172r_20060313.zip	100087	c172r	c172r	jsb	early-production	Cessna 172R
+c182_20080808.zip	267274	c182	c182-2dpanel,c182			Cessna 182 (2D panel)
+c182rg_20080707.zip	257139	c182rg	c182rg	jsb	alpha	Cessna 182RG
+c310_20080808.zip	619432	c310	c310,c310-yasim,c310dpm-3d			Cessna 310 (civilian) with 3D cockpit
+c310u3a_20070206.zip	599159	c310u3a	c310-ifr,c310,c310u3a-jsbsim,c310u3a			Cessna 310 with IFR panel
+C684_20081116.zip	2225454	C684	C684	jsb	beta (0.1.0)	Caudron C684 Super Rafale
+CanberraBI8_20071106.zip	2733232	CanberraBI8	CanberraBI8	yasim	alpha	English Electric Canberra B(I)8 (YASim FDM)
+Caravelle_20081114.zip	10174771	Caravelle	caravelle			caravelle
+Carreidas_20080808.zip	1837209	Carreidas	carreidas			Carreidas 160
+ch47_0.1.zip	1523267	ch47	ch47	yasim	alpha	CH-47 Chinook
+ch53e_0.1.zip	6697390	ch53e	ch53e	yasim	early alpha	Sikorsky CH-53E Super Stallion
+Citation-Bravo_20081214.zip	1954621	Citation-Bravo	Bravo	yasim	development	Cessna 550B - Citation-Bravo
+Citation_20080503.zip	1832335	Citation	Citation-II	yasim		Cessna 550 Citation-II
+CitationX_20081214.zip	1585784	CitationX	CitationX	yasim	devel	Cessna Citation-X
+colditz_20070515.zip	2265211	colditz	colditz	jsb	false	Colditz Escape Glider
+ComperSwift_20071106.zip	1000735	ComperSwift	ComperSwift	yasim	beta	Comper Swift
+Concorde_2.5.zip	4719757	Concorde	Concorde	jsb	early-production	Concorde
+couzinet70_20080811.zip	2574575	couzinet70	couzinet70			Couzinet 70 - Arc en Ciel
+cri-cri_20080304.zip	1693686	cri-cri	MC-15	yasim		Colomban MC-15 Cri-Cri (YASim)
+Dauphin_20081119.zip	4122483	Dauphin	dauphin	yasim	alpha	Dauphin (Yasim)
+dc3_20050614.zip	267724	dc3	dc3	yasim		Douglas DC-3
+dc6_20081009.zip	2043810	dc6	DC-6B	jsb		Douglas DC-6
+Deuche_20081220.zip	5020951	Deuche	deuche			Deux Chevaux Citroen
+DH-88_20080805.zip	3060126	DH-88	dh88,dh88-yasim			de Havilland DH 88 Comet
+DH-89_20080304.zip	4219583	DH-89	dh89,dh89-yasim			De Havilland DH 89
+DH-91_20080805.zip	3719305	DH-91	dh91,dh91-yasim			DH 91 Albatros
+dhc2_20080830.zip	3248892	dhc2	dhc2F,dhc2W	yasim		de Havilland Beaver - Floats
+dhc3_20080805.zip	4584241	dhc3	dhc3A,dhc3F,dhc3S,dhc3W			DHC 3 Otter (Amphibius)
+dhc6_20080503.zip	2467614	dhc6	dhc6,dhc6F,dhc6S	yasim	developement	de Havilland Twin Otter (wheels)
+DO-335_20080828.zip	2725909	DO-335	do335			Dornier Do 335
+DO-X_20081030.zip	3777482	DO-X	dox,dox-yasim			Dornier Do X
+DR400_20081214.zip	14927193	DR400	dr400			Robin DR 400
+Dragonfly_0.4.zip	383235	Dragonfly	Dragonfly	jsb	early-production	Moyes Dragonfly
+E3B_20080304.zip	1533978	E3B	E3B	jsb	early production	Boeing E-3B
+ec135_0.4.zip	13539176	ec135	ec135	yasim	alpha	Eurocopter EC135
+ercoupe_20081117.zip	4472124	ercoupe	ercoupe	jsb	alpha	Ercoupe
+eurofighter_20080707.zip	4364467	eurofighter	typhoon	yasim		EFA Typhoon
+f-14b_20081219.zip	9012394	f-14b	f-14b	yasim	production	Grumman F-14B
+F-86_20080304.zip	5613700	F-86	F-86f	yasim	beta	North American F-86 F Sabre
+F-8E-Crusader_20081219.zip	22146938	F-8E-Crusader	Crusader			
+f104_20080808.zip	74473	f104	f104	jsb	beta	Lockheed F-104 Starfighter
+f15c_20081106.zip	1943213	f15c	f15,f15c,f15c3d	jsb	alpha	McDonell Douglas F-15 Eagle
+f16_20081023.zip	4303344	f16	f16-2dpanel,f16-mlu,f16,f16at	jsb	early-production	General Dynamics F-16 (2d panel)
+f18_20070317.zip	1618771	f18	f18,f183d	jsb	Early production	F-18 Hornet Royal Canadian Air Force
+F4U_20081214.zip	4338082	F4U	f4u	yasim	beta	Vought F4U-1 Corsair
+F80C_20070521.zip	1526970	F80C	F80C	jsb	production	Lockheed F-80C Shooting Star
+Farman-IV_20080304.zip	1494583	Farman-IV	farman-IV-yasim	yasim		Farman IV (YASim)
+FK9MK2_20080828.zip	1803817	FK9MK2	fk9mk2			FK 9 Mark 2
+fkdr1_20080805.zip	1695877	fkdr1	fkdr1-v1-nl-uiuc	larcsim	production	Fokker Dr.1 (UIUC)
+flash2a_20080304.zip	1272180	flash2a	flash2a	jsb	beta	Mainair Flash 2 Alpha
+fokker100_20081023.zip	773955	fokker100	fokker100,fokker70	jsb	beta	Fokker 100 (JSBSim)
+fokker50_20081116.zip	8091523	fokker50	fokker50	jsb	early development	Fokker 50
+fw190_20081204.zip	3699256	fw190	fw190a8	yasim	beta	Focke-Wulf FW-190 A8
+Gee-Bee_20080808.zip	2444890	Gee-Bee	geebee			Racer Gee Bee
+Grob-G109_20080828.zip	2409418	Grob-G109	g109			Grob G109
+Grob-G115_20080922.zip	2635773	Grob-G115	g115			Grob G115
+H-21C-Shawnee_20080304.zip	1827917	H-21C-Shawnee	H-21C	yasim	alpha, "GPL Copyright"	Piasecki_H-21C_Helicopter
+H1-Racer_20080808.zip	3039981	H1-Racer	h1			Hughes H1 racer
+H4-Hercules_0.9.zip	2332016	H4-Hercules	h4-hercules-yasim,h4	yasim	Beta 0.9	Hughes H4 Hercules (YASim)
+Hansajet_0.1.zip	2156758	Hansajet	Hansajet	jsb	early development	Hamburger Flugzeugbau HFB Hansajet
+harrier_20070615.zip	3425526	harrier	harrier	yasim		British Aerospace Harrier (YASim)
+He162_20080223.zip	744132	He162	He162	yasim		Heinkel 162 - Salamander alias Volksjaeger
+Hornet_20081221.zip	963616	Hornet	hornet-yasim	yasim		Autogiro Hornet (YASim)
+Hughes-XF11_20080808.zip	3012826	Hughes-XF11	xf11			Hughes XF 11
+Hunter_20070905.zip	2715157	Hunter	hunter-2tanks,hunter	yasim	early-production	Hawker Hunter GA11 (2 Tanks)
+HUP-Retriever_20080304.zip	1809471	HUP-Retriever	HUP	yasim	alpha, "GPL Copyright"	Piasecki_HUP_Helicopter
+Hurricane_20081219.zip	5599476	Hurricane	hurricaneIIb	yasim	early-production	Hawker Hurricane IIb
+j22_20050614.zip	220941	j22	j22	yasim		Soko J-22 Orao / IAR-93
+j3cub_20081220.zip	403370	j3cub	j3cub	yasim		Piper J3 Cub (J3C-65, 1946 model)
+j7w_20081219.zip	1472058	j7w	j7w,j7w2		development	J7W Shinden
+jeep_20081023.zip	7000538	jeep	gpa,jeep	yasim	alpha	GPA amphibious Jeep
+ju52_20080304.zip	664466	ju52	ju52	yasim	beta	Junkers Ju-52-3m
+KC135_20080828.zip	2970342	KC135	KC135	jsb	early production	Boeing KC-135E
+Ki-84_20081219.zip	1445716	Ki-84	Ki-84	yasim	development	Ki-84 Hayate
+Lightning_20081023.zip	4839165	Lightning	lightning	jsb	production	English Electric Lightning F.1A
+Lionceau_20081023.zip	8043988	Lionceau	lionceau			Lionceau APM20
+Lockheed-SR71_20081023.zip	3102073	Lockheed-SR71	sr71			Lockheed SR 71 Blackbird (YASim)
+Lockheed1049_1.2.zip	2283377	Lockheed1049	Lockheed1049	jsb	early-production	Lockheed 1049 Super Constellation
+Long-EZ_20080828.zip	1945956	Long-EZ	long-ez			Rutan Long EZ
+Lynx-WG13_20080304.zip	1001057	Lynx-WG13	Lynx	yasim	alpha, "GPL Copyright"	Lynx-WG13_Helicopter
+Macchi-Castoldi-MC72_20080910.zip	3104815	Macchi-Castoldi-MC72	mc72			Macchi Castoldi M.C. 72
+Malolo1_0.0.zip	643123	Malolo1	Malolo1	jsb		Malolo1(R/C)
+marchetti_20050614.zip	5844	marchetti	marchetti,marchetti-v1-uiuc			Alias for marchetti-v1-uiuc.
+MD11_20070618.zip	1733895	MD11	MD11-FEDEX,MD11-FINNAIR,MD11-KLM,MD11	jsb		McDonnel Douglas MD11
+ME-262_20080808.zip	3956357	ME-262	me262			Messerschmitt Me-262
+MiG-15_20071106.zip	2108251	MiG-15	MiG-15bis	yasim	alpha	MiG-15bis (YASim FDM)
+Mig-29_20081023.zip	6951914	Mig-29	Mig-29	yasim		MiG-29 Fulcrum
+mirage2000_20070103.zip	1043039	mirage2000	mirage2000	jsb	Early development	Mirage 2000C/RDI
+mosquito_20080304.zip	8640731	mosquito	mosquito	yasim	beta	de Havilland Mosquito B Mk 16
+Noratlas_20081219.zip	2808548	Noratlas	N2501,N2502	jsb	alpha, "GPL Copyright"	Nord-2501 Noratlas
+NTPS_20081023.zip	3763400	NTPS	NTPS-Eng,NTPS-HD1,NTPS-HD2,NTPS-OTW-HUD,NTPS-OTW-NOHUD			NTPS Engineering Panel
+ogel_20080503.zip	362190	ogel	ogel	jsb	early-production	ogeL experimental for JSBSim 2.x (fg after 0.9.9)
+OH-1_0.1.zip	568673	OH-1	OH-1	yasim	development	Kawasaki OH-1 Ninja
+ornithopter_20050430.zip	674433	ornithopter	ornithopter	larcsim		Ornithopter (UIUC)
+OV10_20070506.zip	4159954	OV10	OV10_CDF,OV10_NASA,OV10_USAFE	jsb	beta	US Air Force Europe North American OV-10A Bronco
+P-38-Lightning_20081201.zip	7170670	P-38-Lightning	F-5B,P-38L	jsb	alpha, "GPL Copyright"	F-5B_Lightning
+P180_20080212.zip	1297189	P180	P180-YASim	yasim	alpha	Piaggio P180 Avanti II (YASim)
+p51d_20081030.zip	3387592	p51d	p51d	yasim		P-51D
+pa24-250_20081215.zip	1898875	pa24-250	pa24-250-CIIB,pa24-250	yasim	production	Piper Comanche 250 with Century IIB Autopilot
+pa28-161_20080322.zip	643288	pa28-161	pa28-161	yasim		Piper Cherokee Warrior II (1979 model)
+paraglider_20060114.zip	99592	paraglider	paraglider-jsbsim,paraglider	jsb	beta	paraglider
+payen-pa100_20080813.zip	2416601	payen-pa100	pa100			PAYEN Pa 100
+PBY-Catalina_20081201.zip	2866351	PBY-Catalina	Catalina-plib,Catalina			
+PC-6_20080922.zip	4570588	PC-6	PC-6	yasim	beta	Pilatus PC-6 Turbo Porter
+pc7_20081023.zip	666735	pc7	pc7	jsb	beta	Pilatus PC-7
+pittss1c_20080707.zip	458635	pittss1c	pittss1c	yasim	beta	Pitts S1C
+pushback_20080405.zip	885445	pushback	pushback	yasim	alpha	Pushback
+Quickie_20081214.zip	3239181	Quickie	quickie2			Rutan Quickie 2
+R22_20080503.zip	1108946	R22	R22	yasim		Robinson R22 Beta II
+Rascal_0.1.zip	614866	Rascal	Rascal110-JSBSim,Rascal110-YASim	jsb		Rascal 110 (R/C)
+Ryan-SoSL_20081116.zip	5131534	Ryan-SoSL	ryan-sosl,ryan-sosl-yasim			Ryan NYP "Spirit of St Louis"
+S-51-Dragonfly_20081116.zip	1937976	S-51-Dragonfly	S-51	yasim	alpha, "GPL Copyright"	Sikorsky-S51_Helicopter
+SaabJ35Draken_20080304.zip	1585674	SaabJ35Draken	SaabJ35OeDraken	jsb	alpha	Saab J35Oe Draken
+santa_20051026.zip	407163	santa	santa	ufo		Santa Claus (3d cockpit)
+seahawk_20081129.zip	7320906	seahawk	carrier,seahawk-2tanks,seahawk-RNHF,seahawk			
+SeaVixen_20080304.zip	3029288	SeaVixen	sea-vixen	yasim	alpha	de Havilland SeaVixen FAW2 (YASim)
+SenecaII_0.5.zip	2209454	SenecaII	SenecaII-jsbsim,SenecaII	jsb	early-production	PA34-200T Seneca II (jsbsim)
+sgs233_20070506.zip	116719	sgs233	sgs233	jsb	true	Schweizer 2-33
+shuttle_20080808.zip	8159	shuttle	shuttle-jsbsim,shuttle	jsb		Space Shuttle
+Sikorsky-76C_20081116.zip	2494978	Sikorsky-76C	s76c	yasim		Sikorsky S76C++
+Sikorsky-S58_20080523.zip	3771319	Sikorsky-S58	s58	yasim	alpha	Sikorsky S58 (Yasim)
+Skyranger_20080816.zip	2424966	Skyranger	skyranger			Skyranger
+SM-55_20080916.zip	3169412	SM-55	s55			Savioa Marchetti S55
+snowplow_1.0.zip	2296998	snowplow	snowplow	yasim	alpha	Snow Plow
+sopwithCamel_20080805.zip	4712036	sopwithCamel	sopwithCamel-YASim,sopwithCamel,sopwithCamel-v1-nl-uiuc	yasim	beta	Sopwith Camel 1F.1 (YASim)
+Spitfire_20070619.zip	5620244	Spitfire	seafireIIIc,spitfireIIa	yasim	early-production	Supermarine Seafire MkIIIc
+spitfireIX_20080304.zip	9098205	spitfireIX	spitfireIX	yasim	beta	Supermarine Spitfire Mk IX
+sr20_20051010.zip	210249	sr20	sr20	yasim		Cirrus SR-20 (Test!)
+SR71-BlackBird_20081219.zip	5786530	SR71-BlackBird	Blackbird-A,Blackbird-B	jsb	alpha, "GPL Copyright"	SR-71A_BlackBird
+Stampe-SV4_20081116.zip	5242364	Stampe-SV4	stampe			Stampe SV 4 Br
+Starship_20081023.zip	2797779	Starship	starship			Beechcraft Starship I
+Stieglitz_20080310.zip	4638409	Stieglitz	stieglitz	yasim		Focke Wulf FW44 Stiegltz (YASIM)
+Stiletto_20080304.zip	1243921	Stiletto	stiletto,stiletto-yasim			Douglas X 3 Stiletto (YASim)
+Storch_20081023.zip	1981830	Storch	Fi-156-de,Fi-156	jsb		Fi-156 Storch with German Instruments
+Su-26M_1.0.zip	3243184	Su-26M	Su-26M	jsb	alpha	Sukhoi Su-26M
+SU-37_20080202.zip	694616	SU-37	SU-37	yasim	experimental	Sukoi SU-37 type aircraft (YASim FDM)
+Submarine_Scout_0.1.zip	1221282	Submarine_Scout	Submarine_Scout-observer,Submarine_Scout	null	experimental	Submarine Scout airship multiplayer observer
+Super-Frelon_20080304.zip	2055724	Super-Frelon	superfrelon	yasim	alpha	Super Frelon (Yasim)
+Supermarine-S.6B_20080310.zip	2501814	Supermarine-S.6B	s6b,s6b-yasim			Supermarine S6B
+Superwal_20080221.zip	3900077	Superwal	superwal	yasim		Dornier Superwal (YASIM)
+T-4_20080719.zip	2127390	T-4	T-4-jsbsim,T-4-yasim	jsb	development	Kawasaki T-4 "Blue Impulse" (JSBSim)
+T37_20081023.zip	100316	T37	T37	jsb	beta	Cessna T-37
+T38_20081023.zip	783728	T38	T38	jsb	early production	Northrop T-38
+TBM-Avenger_20081116.zip	7963213	TBM-Avenger	avenger			GRUMANN TBM Avenger
+truck_20071027.zip	17832	truck	truck	yasim	alpha	Truck
+TU-114_20080103.zip	324118	TU-114	TU-114	yasim	development	TU-114 Airliner (YASim FDM)
+tu154_20060501.zip	1385406	tu154	tu154	yasim		Tupolev 154 (YASim)
+ufo_20081122.zip	37901	ufo	mibs,ufo	ufo	alpha	FG video assistant
+UH-60_20080810.zip	5644778	UH-60	uh60	yasim	alpha	Sikorsky UH60 BlackHawk
+V22-Osprey_0.1.zip	2430756	V22-Osprey	v22	yasim	alpha	Bell Boeing V22 Osprey (Yasim)
+Velocity-XL_20081021.zip	3532742	Velocity-XL	velocity			Velocity XL (YASim)
+Vickers-Vimy_20080922.zip	3254556	Vickers-Vimy	vimy			Vickers Vimy
+vulcanb2_20080304.zip	2692009	vulcanb2	vulcanb2	jsb	alpha	Avro Vulcan B.2
+wrightFlyer1903_20050430.zip	1371462	wrightFlyer1903	wrightFlyer1903	larcsim		1903 Wright Flyer (UIUC)
+X15_20061204.zip	573479	X15	X15-new,X15	jsb		North American X-15
+x24b_20060114.zip	8997	x24b	x24,x24b-jsbsim,x24b			Alias for x24b.
+YardStik_0.0.zip	2447192	YardStik	YardStik	jsb		Yard Stik (R/C)
+YF-23_20081030.zip	1151263	YF-23	NTPS,YF-23	yasim	beta	Northrop/McDonnell Douglas YF-23 ATF prototype (YASim FDM)
+ZF_Navy_free_balloon_0.1.zip	150626	ZF_Navy_free_balloon	ZF_Navy_free_balloon	jsb	experimental	ZF Navy free gas balloon
+ZivkoEdge_0.1.zip	834550	ZivkoEdge	ZivkoEdge540	jsb	alpha	Zivko EDGE 540
+Zlin-50lx_20081030.zip	5118814	Zlin-50lx	z50lx			Zlin 50 lx
+ZLT-NT_20081220.zip	612419	ZLT-NT	ZLT-NT-copilot,ZLT-NT	null	experimental	Zeppelin NT07 multiplayer copilot

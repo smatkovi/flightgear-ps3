@@ -1,4 +1,4 @@
-diff -ruN '--exclude=*.orig' plib-1.8.4/src/net/netSocket.cxx plib-1.8.4.ps3/src/net/netSocket.cxx
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' plib-1.8.4/src/net/netSocket.cxx plib-1.8.4.ps3/src/net/netSocket.cxx
 --- plib-1.8.4/src/net/netSocket.cxx	2004-04-06 14:42:40.000000000 +0200
 +++ plib-1.8.4.ps3/src/net/netSocket.cxx	2026-10-04 00:18:57.365336813 +0200
 @@ -38,6 +38,9 @@
@@ -11,7 +11,65 @@ diff -ruN '--exclude=*.orig' plib-1.8.4/src/net/netSocket.cxx plib-1.8.4.ps3/src
  
  #else
  
-diff -ruN '--exclude=*.orig' plib-1.8.4/src/util/ul.h plib-1.8.4.ps3/src/util/ul.h
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' plib-1.8.4/src/ssg/ssgconf.h plib-1.8.4.ps3/src/ssg/ssgconf.h
+--- plib-1.8.4/src/ssg/ssgconf.h	2004-09-14 14:19:05.000000000 +0200
++++ plib-1.8.4.ps3/src/ssg/ssgconf.h	2026-10-04 14:29:15.929624205 +0200
+@@ -43,7 +43,11 @@
+   change the #undef to a #define in the following line.
+  */
+ 
++#ifdef __PS3__
++#define SSG_LOAD_PNG_SUPPORTED    /* port/ssgLoadPNG_ps3.cxx, through libpng */
++#else
+ #undef  SSG_LOAD_PNG_SUPPORTED
++#endif
+ 
+ #define SSG_LOAD_SGI_SUPPORTED
+ #define SSG_LOAD_TGA_SUPPORTED
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' plib-1.8.4/src/ssg/ssgLoadTexture.cxx plib-1.8.4.ps3/src/ssg/ssgLoadTexture.cxx
+--- plib-1.8.4/src/ssg/ssgLoadTexture.cxx	2003-06-27 10:15:15.000000000 +0200
++++ plib-1.8.4.ps3/src/ssg/ssgLoadTexture.cxx	2026-10-04 14:25:40.617835375 +0200
+@@ -276,8 +276,39 @@
+ 
+ 
+ 
++#ifdef __PS3__
++/* Textures of models made on Windows are often referred to in a different
++   case than the file has; look for the file ignoring case. */
++static bool ssgFindFileNoCase ( const char *filename, char *found, int len )
++{
++  const char *slash = strrchr ( filename, '/' ) ;
++  char dir [ 1024 ] ;
++  bool ok = false ;
++  if ( slash == NULL || slash - filename >= (int) sizeof(dir) ) return false ;
++  memcpy ( dir, filename, slash - filename ) ;
++  dir [ slash - filename ] = '\0' ;
++  ulDir *d = ulOpenDir ( dir ) ;
++  if ( d == NULL ) return false ;
++  ulDirEnt *e ;
++  while ( ! ok && ( e = ulReadDir ( d ) ) != NULL )
++    if ( ulStrEqual ( e -> d_name, slash + 1 ) )
++    {
++      snprintf ( found, len, "%s/%s", dir, e -> d_name ) ;
++      ok = true ;
++    }
++  ulCloseDir ( d ) ;
++  return ok ;
++}
++#endif
++
+ bool ssgLoadTexture ( const char * filename, ssgTextureInfo* info )
+ {
++#ifdef __PS3__
++  char found [ 1024 ] ;
++  if ( filename != NULL && *filename != '\0' && ! ulFileExists ( filename ) &&
++       ssgFindFileNoCase ( filename, found, sizeof(found) ) )
++    filename = found ;
++#endif
+   if ( info != NULL )
+   {
+     info -> width = 0 ;
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' plib-1.8.4/src/util/ul.h plib-1.8.4.ps3/src/util/ul.h
 --- plib-1.8.4/src/util/ul.h	2004-06-24 18:30:55.000000000 +0200
 +++ plib-1.8.4.ps3/src/util/ul.h	2026-10-04 00:18:57.364644073 +0200
 @@ -72,6 +72,10 @@

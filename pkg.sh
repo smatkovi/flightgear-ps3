@@ -22,8 +22,13 @@ cp "$R/port/fgfs.args" "$P/USRDIR/fgfs.args"
 if [ "$1" = --full ]; then
     [ -d "$DATA" ] || { echo "no data: run ./fetch_data.sh first"; exit 1; }
     cp -r "$R/port/fgdata/." "$DATA/"
-    # UIUC aircraft need 118 MB more memory than there is; Docs are not needed
-    (cd "$DATA" && tar cf - --exclude=./Aircraft/UIUC --exclude=./Docs .) | (mkdir -p "$P/USRDIR/fgdata" && cd "$P/USRDIR/fgdata" && tar xf -)
+    # UIUC aircraft need 118 MB more memory than there is; Docs are not needed;
+    # aircraft that are not in the base package (installed through the hangar
+    # in RPCS3) are downloads
+    BASE=$(tar tzf "$R/dl/fgfs-base_0.9.10.orig.tar.gz" | awk -F/ '$2 == "Aircraft" && NF > 3 { print $3 }' | sort -u)
+    EXCL="--exclude=./Aircraft/UIUC --exclude=./Docs"
+    for d in $(ls "$DATA/Aircraft"); do echo "$BASE" | grep -qx "$d" || EXCL="$EXCL --exclude=./Aircraft/$d"; done
+    (cd "$DATA" && tar cf - $EXCL .) | (mkdir -p "$P/USRDIR/fgdata" && cd "$P/USRDIR/fgdata" && tar xf -)
     OUT="$R/FlightGear-0.9.10-PS3.pkg"
 fi
 python3 "$T/pkg.py" --contentid "$CONTENTID" "$P/" "$OUT" > /dev/null

@@ -1586,12 +1586,20 @@ void ps3glInit(void)
     static const struct { const unsigned char *data; } fps[FP_COUNT] = {
         { fp_notex_fpo }, { fp_modulate_fpo }, { fp_replace_fpo }, { fp_decal_fpo }, { fp_blend_fpo }, { fp_add_fpo }
     };
-    void *host = memalign(1024 * 1024, HOST_SIZE);
+    void *host;
     u32 pitch, color_ofs[2], z_ofs, size, i;
     void *zbuf, *ucode;
     char name[8];
     int ok = 0;
 
+    if (ctx) {      /* already up (the hangar ran first): just reset the GL state */
+        defaults();
+        rsxSetSurface(ctx, &surf[cur_fb]);
+        send_raster();
+        load_programs();
+        return;
+    }
+    host = memalign(1024 * 1024, HOST_SIZE);
     rsxInit(&ctx, CB_SIZE, HOST_SIZE, host);
     for (i = 0; i < sizeof modes / sizeof modes[0] && !ok; i++) ok = set_mode(modes[i]);
     if (!ok) { ps3glLog("ps3gl: no usable video mode"); exit(1); }

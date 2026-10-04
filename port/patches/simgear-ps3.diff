@@ -1,4 +1,4 @@
-diff -ruN '--exclude=*.orig' SimGear-0.3.10/simgear/debug/logstream.hxx SimGear-0.3.10.ps3/simgear/debug/logstream.hxx
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/debug/logstream.hxx SimGear-0.3.10.ps3/simgear/debug/logstream.hxx
 --- SimGear-0.3.10/simgear/debug/logstream.hxx	2006-03-09 23:34:47.000000000 +0100
 +++ SimGear-0.3.10.ps3/simgear/debug/logstream.hxx	2026-10-04 00:15:44.072746385 +0200
 @@ -26,6 +26,7 @@
@@ -9,8 +9,140 @@ diff -ruN '--exclude=*.orig' SimGear-0.3.10/simgear/debug/logstream.hxx SimGear-
  
  #ifdef _MSC_VER
  #  include <windows.h>
-diff -ruN '--exclude=*.orig' SimGear-0.3.10/simgear/simgear_config.h SimGear-0.3.10.ps3/simgear/simgear_config.h
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/nasal/code.c SimGear-0.3.10.ps3/simgear/nasal/code.c
+--- SimGear-0.3.10/simgear/nasal/code.c	2006-01-04 17:46:16.000000000 +0100
++++ SimGear-0.3.10.ps3/simgear/nasal/code.c	2026-10-04 14:55:41.630529251 +0200
+@@ -706,6 +706,21 @@
+     naTempSave(ctx, obj);
+     naTempSave(ctx, locals);
+ 
++    // Return early if an error occurred.  It will be visible to the
++    // caller via naGetError().  Errors longjmp here, so this has to come
++    // before anything that can raise one: the C function below, or
++    // setupArgs() with too few arguments (e.g. a listener written for a
++    // later FlightGear, which passes the changed node).  It used to come
++    // after setupArgs(), and such an error jumped into the buffer of an
++    // earlier, finished call and crashed.
++    ctx->dieArg = naNil();
++    ctx->error = 0;
++    ctx->fTop = 0;
++    if(setjmp(ctx->jumpHandle)) {
++        if(!ctx->callParent) naModUnlock(ctx);
++        return naNil();
++    }
++
+     if(IS_CCODE(func.ref.ptr.func->code)) {
+         naCFunction fp = func.ref.ptr.func->code.ref.ptr.ccode->fptr;
+         result = (*fp)(ctx, obj, argc, args);
+@@ -720,8 +735,6 @@
+     if(!IS_NIL(obj))
+         naHash_set(locals, globals->meRef, obj);
+ 
+-    ctx->dieArg = naNil();
+-
+     ctx->opTop = ctx->markTop = 0;
+     ctx->fTop = 1;
+     ctx->fStack[0].func = func;
+@@ -731,14 +744,6 @@
+ 
+     setupArgs(ctx, ctx->fStack, args, argc);
+ 
+-    // Return early if an error occurred.  It will be visible to the
+-    // caller via naGetError().
+-    ctx->error = 0;
+-    if(setjmp(ctx->jumpHandle)) {
+-        if(!ctx->callParent) naModUnlock(ctx);
+-        return naNil();
+-    }
+-
+     result = run(ctx);
+     if(!ctx->callParent) naModUnlock(ctx);
+     return result;
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/nasal/misc.c SimGear-0.3.10.ps3/simgear/nasal/misc.c
+--- SimGear-0.3.10/simgear/nasal/misc.c	2005-09-26 21:56:49.000000000 +0200
++++ SimGear-0.3.10.ps3/simgear/nasal/misc.c	2026-10-04 15:01:08.874060039 +0200
+@@ -214,3 +214,12 @@
+ int naIsCode(naRef r)   { return IS_CODE(r); }
+ int naIsCCode(naRef r)  { return IS_CCODE(r); }
+ int naIsGhost(naRef r)  { return IS_GHOST(r); }
++
++// Number of parameters (required and optional) a Nasal function or code
++// object declares; -1 for anything else.
++int naNumParams(naRef r)
++{
++    if(IS_FUNC(r)) r = r.ref.ptr.func->code;
++    if(!IS_CODE(r)) return -1;
++    return r.ref.ptr.code->nArgs + r.ref.ptr.code->nOptArgs;
++}
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/nasal/nasal.h SimGear-0.3.10.ps3/simgear/nasal/nasal.h
+--- SimGear-0.3.10/simgear/nasal/nasal.h	2005-09-26 21:56:49.000000000 +0200
++++ SimGear-0.3.10.ps3/simgear/nasal/nasal.h	2026-10-04 15:01:08.961061777 +0200
+@@ -147,6 +147,7 @@
+ int naIsCode(naRef r);
+ int naIsFunc(naRef r);
+ int naIsCCode(naRef r);
++int naNumParams(naRef r);
+ 
+ // Allocators/generators:
+ naRef naNil();
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/scene/model/model.cxx SimGear-0.3.10.ps3/simgear/scene/model/model.cxx
+--- SimGear-0.3.10/simgear/scene/model/model.cxx	2006-03-20 17:01:19.000000000 +0100
++++ SimGear-0.3.10.ps3/simgear/scene/model/model.cxx	2026-10-04 15:11:01.957913902 +0200
+@@ -326,7 +326,15 @@
+ 
+     } catch (const sg_throwable &t) {
+       SG_LOG(SG_INPUT, SG_ALERT, "Failed to load submodel: " << t.getFormattedMessage());
++#ifdef __PS3__
++      // aircraft made for later FlightGear versions use models that 0.9.10
++      // does not have: leave out that part instead of the whole aircraft
++      SG_LOG(SG_INPUT, SG_ALERT, "  left out: " << submodel);
++      delete align;
++      continue;
++#else
+       throw;
++#endif
+     }
+     align->addKid(kid);
+     align->setName(node->getStringValue("name", ""));
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/scene/model/shadanim.cxx SimGear-0.3.10.ps3/simgear/scene/model/shadanim.cxx
+--- SimGear-0.3.10/simgear/scene/model/shadanim.cxx	2006-03-09 23:34:48.000000000 +0100
++++ SimGear-0.3.10.ps3/simgear/scene/model/shadanim.cxx	2026-10-04 15:10:23.964154156 +0200
+@@ -591,8 +591,12 @@
+ {
+     if( ! initDone )
+         init_shaders();
++    // heat-haze and chrome need multitexturing (glActiveTextureARB); without
++    // it (the PS3's GL) the model is drawn without the effect
+     if( _shader_type == 1 && Shader::is_VP_supported() && shFresnel)
+         setCallBack( getBranch(), (ssgBase *) this, fresnel_shader_callback );
++    else if( !glActiveTexturePtr )
++        setCallBack( getBranch(), (ssgBase *) this, null_shader_callback );
+     else if( _shader_type == 2 ) {
+         // this is the same extension with different names
+         isRectangleTextureSupported = SGIsOpenGLExtensionSupported("GL_EXT_texture_rectangle") ||
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/simgear_config.h SimGear-0.3.10.ps3/simgear/simgear_config.h
 --- SimGear-0.3.10/simgear/simgear_config.h	1970-01-01 01:00:00.000000000 +0100
 +++ SimGear-0.3.10.ps3/simgear/simgear_config.h	2026-10-04 00:15:08.404400382 +0200
 @@ -0,0 +1 @@
 +#include <ps3_config.h>
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/structure/event_mgr.cxx SimGear-0.3.10.ps3/simgear/structure/event_mgr.cxx
+--- SimGear-0.3.10/simgear/structure/event_mgr.cxx	2005-11-11 01:33:11.000000000 +0100
++++ SimGear-0.3.10.ps3/simgear/structure/event_mgr.cxx	2026-10-04 14:38:16.589973247 +0200
+@@ -77,7 +77,17 @@
+ void SGTimerQueue::update(double deltaSecs)
+ {
+     _now += deltaSecs;
++#ifdef __PS3__
++    // Run each timer that was due when this update started at most about
++    // once. A timer that reschedules itself with no delay (settimer(f, 0),
++    // aircraft.light with interval 0 - common in aircraft made for later
++    // FlightGear versions) then runs again next frame, as it does there,
++    // instead of looping here forever.
++    int budget = _numEntries;
++    while(budget-- > 0 && _numEntries && nextTime() <= _now) {
++#else
+     while(_numEntries && nextTime() <= _now) {
++#endif
+         SGTimer* t = remove();
+         t->run();
+     }

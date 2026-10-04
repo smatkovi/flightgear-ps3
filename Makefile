@@ -74,7 +74,9 @@ $(B)/obj/%.c.o: $(R)/%.c | $(PLIB_HDR)
 
 # ---- PLIB ----
 PLIB_DIRS := util sg ssg ssgAux fnt pui puAux net
-PLIB_SRCS := $(foreach d,$(PLIB_DIRS),$(wildcard $(PLIB)/$(d)/*.cxx)) $(PLIB)/js/js.cxx $(R)/port/jsPS3.cxx
+# PNG textures through libpng (port/ssgLoadPNG_ps3.cxx) instead of PLIB's glpng loader
+PLIB_SRCS := $(filter-out $(PLIB)/ssg/ssgLoadPNG.cxx,$(foreach d,$(PLIB_DIRS),$(wildcard $(PLIB)/$(d)/*.cxx))) \
+             $(PLIB)/js/js.cxx $(R)/port/jsPS3.cxx $(R)/port/ssgLoadPNG_ps3.cxx
 $(eval $(call deflib,plib,$(PLIB_SRCS)))
 
 # ---- SimGear and FlightGear: source lists come from their Makefile.am files ----
@@ -108,8 +110,9 @@ shaders:
 .PHONY: shaders
 $(eval $(call deflib,ps3gl,$(R)/ps3gl/src/ps3gl.c $(R)/ps3gl/src/glu.c))
 
-# ---- port glue: controller, audio stub, libc additions ----
-$(eval $(call deflib,port,$(R)/port/ps3pad.c $(R)/port/al_stub.c $(R)/port/ps3_libc.c))
+# ---- port glue: controller, audio stub, libc additions, the hangar ----
+$(eval $(call deflib,port,$(R)/port/ps3pad.c $(R)/port/al_stub.c $(R)/port/ps3_libc.c \
+    $(R)/port/hangar/hangar.cxx $(R)/port/hangar/http.c $(R)/port/hangar/unzip.c))
 
 # ---- the program ----
 LIBS_ALL := $(B)/lib/libfgfs.a $(B)/lib/libsimgear.a $(B)/lib/libplib.a $(B)/lib/libps3gl.a $(B)/lib/libport.a
@@ -117,10 +120,11 @@ LIBS_ALL := $(B)/lib/libfgfs.a $(B)/lib/libsimgear.a $(B)/lib/libplib.a $(B)/lib
 # debug guard in port/ps3_libc.c (same code, so the same layout).
 comma := ,
 DEBUG_LD := $(if $(filter 1,$(PS3_DEBUG)),-Wl$(comma)--wrap=malloc$(comma)--wrap=calloc$(comma)--wrap=realloc)
-FGFS_LINK = $(CXX) $(MACH) -Wl,--gc-sections -Wl,--no-multi-toc $(DEBUG_LD) -Wl,-Map,$(B)/fgfs.map \
+# --wrap=exit: a fatal error while an aircraft loads returns to the hangar (port/fg/fg_os_ps3.cxx)
+FGFS_LINK = $(CXX) $(MACH) -Wl,--gc-sections -Wl,--no-multi-toc -Wl,--wrap=exit $(DEBUG_LD) -Wl,-Map,$(B)/fgfs.map \
 	  -Wl,--whole-archive $(B)/lib/libfgfs.a -Wl,--no-whole-archive \
 	  -Wl,--start-group $(B)/lib/libsimgear.a $(B)/lib/libplib.a $(B)/lib/libps3gl.a $(B)/lib/libport.a -Wl,--end-group \
-	  -L$(PORT)/lib -L/ps3dev/ppu/lib -lz -lnet -lio -lsysutil -lrsx -lgcm_sys -lsysmodule -lrt -llv2 -lm
+	  -L$(PORT)/lib -L/ps3dev/ppu/lib -lpng -lz -lnet -lio -lsysutil -lrsx -lgcm_sys -lsysmodule -lrt -llv2 -lm
 $(B)/fgfs.elf: $(LIBS_ALL)
 	@echo LD $(notdir $@)
 	@$(FGFS_LINK) -Wl,--defsym=ps3_got_start=0 -Wl,--defsym=ps3_got_end=0 -o $@.pass1
