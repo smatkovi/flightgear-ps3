@@ -17,6 +17,8 @@ void hangar_mark_quit();
 void hangar_mark_failed(int code);
 /* True between hangar_run() and hangar_mark_running(). */
 bool hangar_starting();
+/* The START menu during the flight, drawn over the scene */
+void hangar_menu_draw(const char *title, const char **items, int n, int sel);
 /* Restart the program into the hangar; does not return. */
 void hangar_restart();
 

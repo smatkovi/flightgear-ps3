@@ -101,7 +101,7 @@ FlightGear 1.9).
 | d-pad | look around |
 | R3 (press the right stick) | look ahead again |
 | R1 / L1 | flaps down / up |
-| START | pause |
+| START | pause menu (resume, rumble on/off, back to the hangar, quit) |
 
 Hold the controller the way that is comfortable and press SELECT once: tilt is
 measured from there. If roll or pitch goes the wrong way for you, flip the sign

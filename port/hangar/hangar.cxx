@@ -471,6 +471,49 @@ static void box(const string &title, const vector<string> &lines, const string &
     text(190, y + h - 22, 20, keys, 0.95f, 0.75f, 0.35f);
 }
 
+// The menu on START during the flight, drawn over the scene
+void hangar_menu_draw(const char *title, const char **items, int n, int sel)
+{
+    if (!W) {
+        ps3glGetSize(&W, &H);
+        S = H / 720.0f;
+    }
+    glViewport(0, 0, W, H);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, W, 0, H);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_FOG);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    float h = 110 + 60 * n, y = (720 - h) / 2;
+    rect(0, 0, 1280, 720, 0, 0, 0, 0.45f);
+    rect(340, y, 600, h, 0.13f, 0.18f, 0.30f, 0.95f);
+    rect(340, y, 600, 4, 0.95f, 0.65f, 0.2f, 1);
+    text(370, y + 46, 28, title, 1, 1, 1);
+    for (int i = 0; i < n; i++) {
+        float iy = y + 70 + 60 * i;
+        if (i == sel) rect(350, iy, 580, 50, 0.95f, 0.65f, 0.2f, 0.25f);
+        text(380, iy + 34, 24, items[i], 1, 1, 1);
+    }
+    help("Up/Down: choose     X: select     O or START: back to the flight");
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+}
+
 // ---------------------------------------------------------------- input
 
 static unsigned prev_buttons;

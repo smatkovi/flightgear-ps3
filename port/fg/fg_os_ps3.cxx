@@ -110,7 +110,7 @@ static unsigned long work_frames;
 
 static void heartbeat(unsigned long frame)
 {
-    char st[256];
+    char st[1024];
     struct mallinfo mi = mallinfo();
     unsigned long long t = now_us();
     ps3glStats(st, sizeof st);
@@ -180,6 +180,52 @@ static void pad_properties()
     ps3pad_rumble(large->getFloatValue(), small->getBoolValue());
 }
 
+// START: pause and a menu over the scene
+static bool menu_open;
+static int menu_sel;
+static unsigned menu_prev;
+
+static void menu_input()
+{
+    unsigned b = ps3pad_get()->buttons, edge = b & ~menu_prev;
+    menu_prev = b;
+    if (!menu_open) {
+        if (edge & (1u << PS3PAD_START)) {
+            menu_open = true;
+            menu_sel = 0;
+            fgSetBool("/sim/freeze/master", true);
+            fgSetBool("/sim/freeze/clock", true);
+            ps3pad_mute(1);
+            ps3pad_rumble(0.0f, 0);
+        }
+        return;
+    }
+    if (edge & (1u << PS3PAD_UP)) menu_sel = (menu_sel + 3) % 4;
+    if (edge & (1u << PS3PAD_DOWN)) menu_sel = (menu_sel + 1) % 4;
+    bool resume = edge & ((1u << PS3PAD_START) | (1u << PS3PAD_CIRCLE));
+    if (edge & (1u << PS3PAD_CROSS)) {
+        switch (menu_sel) {
+        case 0: resume = true; break;
+        case 1: fgSetBool("/input/ps3/rumble", !fgGetBool("/input/ps3/rumble", true)); break;
+        case 2: hangar_mark_quit(); hangar_restart(); break;
+        case 3: hangar_mark_quit(); exit(0); break;
+        }
+    }
+    if (resume) {
+        menu_open = false;
+        fgSetBool("/sim/freeze/master", false);
+        fgSetBool("/sim/freeze/clock", false);
+        ps3pad_mute(0);
+    }
+}
+
+static void menu_draw()
+{
+    const char *items[4] = { "Resume", fgGetBool("/input/ps3/rumble", true) ? "Rumble: on" : "Rumble: off",
+                             "Back to the hangar", "Quit FlightGear" };
+    hangar_menu_draw("Paused", items, 4, menu_sel);
+}
+
 void fgOSMainLoop()
 {
     unsigned long frame = 0;
@@ -197,10 +243,12 @@ void fgOSMainLoop()
 #endif
         unsigned long long t0 = now_us(), work;
         ps3pad_poll();
+        if (running) menu_input();
         pad_properties();
         if (IdleHandler) (*IdleHandler)();
         if (NeedRedraw && DrawHandler) {
             (*DrawHandler)();
+            if (menu_open) menu_draw();
             work = now_us() - t0;
             work_sum += work;
             if (work > work_max) work_max = work;

@@ -225,16 +225,6 @@ The d-pad looks around, R3 looks straight ahead again.
   </binding>
  </button>
 
- <button n="9">
-  <desc>Pause (start)</desc>
-  <binding>
-   <command>property-toggle</command>
-   <property>/sim/freeze/master</property>
-  </binding>
-  <binding>
-   <command>property-toggle</command>
-   <property>/sim/freeze/clock</property>
-  </binding>
- </button>
+ <!-- START (button 9): the pause menu of the port (fg_os_ps3.cxx) -->
 
 </PropertyList>

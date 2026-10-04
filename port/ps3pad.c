@@ -14,6 +14,9 @@ static int inited, configured;
 static unsigned long polls, with_data, with_sensors;
 static int rc_port, rc_press, rc_sensor, last_len;
 static unsigned raw_x, raw_y, raw_z, raw_g;
+/* diagnostics: the raw data words, and the range of the sensor words */
+static u16 raw_words[24];
+static unsigned sens_min[4] = { 0xffff, 0xffff, 0xffff, 0xffff }, sens_max[4];
 /* Tilt is measured from the attitude the controller had when Select was last
    pressed, so it can be held at whatever angle is comfortable. */
 static float acc_x = ACC_LEVEL, acc_z = ACC_LEVEL, zero_x = ACC_LEVEL, zero_z = ACC_LEVEL;
@@ -68,19 +71,27 @@ void ps3pad_poll(void)
     st.axis[PS3PAD_RY] = stick(d.ANA_R_V);
     if (d.len >= PAD_BUTTON_OFFSET_SENSOR_G + 1) {      /* the sensor values are there */
         with_sensors++;
-        raw_x = d.SENSOR_X;
-        raw_y = d.SENSOR_Y;
-        raw_z = d.SENSOR_Z;
-        raw_g = d.SENSOR_G;
+        int k;
+        /* the data words themselves (not PSL1GHT's bit fields) */
+        raw_x = d.button[PAD_BUTTON_OFFSET_SENSOR_X];
+        raw_y = d.button[PAD_BUTTON_OFFSET_SENSOR_Y];
+        raw_z = d.button[PAD_BUTTON_OFFSET_SENSOR_Z];
+        raw_g = d.button[PAD_BUTTON_OFFSET_SENSOR_G];
+        memcpy(raw_words, d.button, sizeof raw_words);
+        for (k = 0; k < 4; k++) {
+            unsigned v = d.button[PAD_BUTTON_OFFSET_SENSOR_X + k];
+            if (v < sens_min[k]) sens_min[k] = v;
+            if (v > sens_max[k]) sens_max[k] = v;
+        }
         if (!acc_valid) {
-            acc_x = d.SENSOR_X;
-            acc_z = d.SENSOR_Z;
+            acc_x = raw_x;
+            acc_z = raw_z;
             acc_valid = 1;
         } else {
-            acc_x += ACC_SMOOTH * ((float)d.SENSOR_X - acc_x);
-            acc_z += ACC_SMOOTH * ((float)d.SENSOR_Z - acc_z);
+            acc_x += ACC_SMOOTH * ((float)raw_x - acc_x);
+            acc_z += ACC_SMOOTH * ((float)raw_z - acc_z);
         }
-        st.axis[PS3PAD_GYRO] = ((float)d.SENSOR_G - 512.0f) / 512.0f;
+        st.axis[PS3PAD_GYRO] = ((float)raw_g - 512.0f) / 512.0f;
     }
     if (d.BTN_SELECT && !select_was_down) {     /* recentre the tilt */
         zero_x = acc_x;
@@ -108,6 +119,10 @@ void ps3pad_poll(void)
 
 const ps3pad_state *ps3pad_get(void) { return &st; }
 
+static int muted;
+void ps3pad_mute(int on) { muted = on; }
+int ps3pad_muted(void) { return muted; }
+
 /* Rumble: large motor 0..1, small motor on/off. The large motor does not
    turn below about a quarter of its speed, so weak values start there. */
 void ps3pad_rumble(float large, int small)
@@ -128,9 +143,26 @@ void ps3pad_rumble(float large, int small)
 
 void ps3pad_report(char *buf, int n)
 {
-    snprintf(buf, n, "pad: polls %lu, with data %lu, with sensors %lu, len %d; "
-             "press/sensor/port setting %d/%d/%d, sensor mode %d; sensors x %u y %u z %u g %u; tilt %.2f %.2f",
+    padInfo2 info2;
+    int k, len;
+    len = snprintf(buf, n, "pad: polls %lu, with data %lu, with sensors %lu, len %d; "
+             "press/sensor/port setting %d/%d/%d, sensor mode %d; sensors x %u y %u z %u g %u "
+             "(range x %u-%u y %u-%u z %u-%u g %u-%u); tilt %.2f %.2f",
              polls, with_data, with_sensors, last_len, rc_press, rc_sensor, rc_port,
              st.connected ? ioPadInfoSensorMode(0) : -1, raw_x, raw_y, raw_z, raw_g,
-             st.axis[PS3PAD_TILT_ROLL], st.axis[PS3PAD_TILT_PITCH]);
+             sens_min[0], sens_max[0], sens_min[1], sens_max[1], sens_min[2], sens_max[2],
+             sens_min[3], sens_max[3], st.axis[PS3PAD_TILT_ROLL], st.axis[PS3PAD_TILT_PITCH]);
+    for (k = 0; k < 4; k++) { sens_min[k] = 0xffff; sens_max[k] = 0; }
+    if (ioPadGetInfo2(&info2) == 0 && len < n) {
+        len += snprintf(buf + len, n - len, "; info2 connected %u info %x", info2.connected, info2.info);
+        for (k = 0; k < 7 && len < n; k++)
+            if (info2.port_status[k] & 1)
+                len += snprintf(buf + len, n - len, "; port %d status %x setting %x capability %x type %u",
+                                k, info2.port_status[k], info2.port_setting[k],
+                                info2.device_capability[k], info2.device_type[k]);
+    }
+    if (len < n) {
+        len += snprintf(buf + len, n - len, "; words");
+        for (k = 0; k < 24 && len < n; k++) len += snprintf(buf + len, n - len, " %x", raw_words[k]);
+    }
 }

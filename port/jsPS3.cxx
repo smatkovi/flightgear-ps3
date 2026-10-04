@@ -38,6 +38,11 @@ void jsJoystick::rawRead ( int *buttons, float *axes )
 {
   const ps3pad_state *st = ps3pad_get () ;
 
+  if ( ps3pad_muted () ) {         /* the START menu is open */
+    if ( buttons != NULL ) *buttons = 0 ;
+    if ( axes != NULL ) memset ( axes, 0, sizeof(float) * num_axes ) ;
+    return ;
+  }
   if ( buttons != NULL ) *buttons = error ? 0 : (int) st->buttons ;
   if ( axes != NULL && ! error )
     memcpy ( axes, st->axis, sizeof(float) * PS3PAD_AXES ) ;
