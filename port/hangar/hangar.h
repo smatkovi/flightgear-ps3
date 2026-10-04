@@ -21,6 +21,8 @@ void hangar_mark_failed(int code);
 bool hangar_starting();
 /* The START menu during the flight, drawn over the scene */
 void hangar_menu_draw(const char *title, const char **items, int n, int sel);
+/* 3D on/off at once (video mode changes, no restart) */
+void hangar_toggle_stereo();
 /* 3D settings (GT5's): parallax 1-10, convergence 0.00-1.00; set saves them */
 void hangar_stereo_get(int *parallax, float *convergence);
 void hangar_stereo_set(int parallax, float convergence);

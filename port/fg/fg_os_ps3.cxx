@@ -190,7 +190,7 @@ static void pad_properties()
 static bool menu_open;
 static int menu_sel;
 static unsigned menu_prev;
-enum { M_RESUME, M_RUMBLE, M_PARALLAX, M_CONVERGENCE, M_HANGAR, M_QUIT };
+enum { M_RESUME, M_RUMBLE, M_STEREO, M_PARALLAX, M_CONVERGENCE, M_HANGAR, M_QUIT };
 
 // the menu's entries: the 3D settings only when the display runs in 3D
 static int menu_items(int *ids)
@@ -198,6 +198,7 @@ static int menu_items(int *ids)
     int n = 0;
     ids[n++] = M_RESUME;
     ids[n++] = M_RUMBLE;
+    ids[n++] = M_STEREO;
     if (ps3glStereo()) { ids[n++] = M_PARALLAX; ids[n++] = M_CONVERGENCE; }
     ids[n++] = M_HANGAR;
     ids[n++] = M_QUIT;
@@ -231,7 +232,7 @@ static void menu_input()
         }
         return;
     }
-    int ids[6], n = menu_items(ids);
+    int ids[7], n = menu_items(ids);
     if (edge & (1u << PS3PAD_UP)) menu_sel = (menu_sel + n - 1) % n;
     if (edge & (1u << PS3PAD_DOWN)) menu_sel = (menu_sel + 1) % n;
     int dir = (edge & (1u << PS3PAD_RIGHT)) ? 1 : (edge & (1u << PS3PAD_LEFT)) ? -1 : 0;
@@ -249,6 +250,11 @@ static void menu_input()
         switch (ids[menu_sel]) {
         case M_RESUME: resume = true; break;
         case M_RUMBLE: fgSetBool("/input/ps3/rumble", !fgGetBool("/input/ps3/rumble", true)); break;
+        case M_STEREO:
+            hangar_toggle_stereo();
+            stereo_apply();
+            if (!ps3glStereo() && menu_sel >= menu_items(ids)) menu_sel = 0;
+            break;
         case M_HANGAR: hangar_mark_quit(); hangar_restart(); break;
         case M_QUIT: hangar_mark_quit(); exit(0); break;
         }
@@ -263,10 +269,10 @@ static void menu_input()
 
 static void menu_draw()
 {
-    int ids[6], n = menu_items(ids), p;
+    int ids[7], n = menu_items(ids), p;
     float c;
     char par[64], conv[64];
-    const char *items[6];
+    const char *items[7];
     hangar_stereo_get(&p, &c);
     snprintf(par, sizeof par, "3D parallax: < %d >", p);
     snprintf(conv, sizeof conv, "3D convergence: < %.2f >", c);
@@ -274,6 +280,7 @@ static void menu_draw()
         switch (ids[i]) {
         case M_RESUME: items[i] = "Resume"; break;
         case M_RUMBLE: items[i] = fgGetBool("/input/ps3/rumble", true) ? "Rumble: on" : "Rumble: off"; break;
+        case M_STEREO: items[i] = ps3glStereo() ? "3D: on" : "3D: off"; break;
         case M_PARALLAX: items[i] = par; break;
         case M_CONVERGENCE: items[i] = conv; break;
         case M_HANGAR: items[i] = "Back to the hangar"; break;

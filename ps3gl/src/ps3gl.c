@@ -1942,28 +1942,30 @@ static rsxProgramConst *vconst(const char *name)
     return c;
 }
 
-void ps3glInit(void)
+static void *fb_mem[2], *z_mem, *aac_mem, *aaz_mem;
+
+static void free_display(void)
+{
+    int i;
+    for (i = 0; i < 2; i++) { if (fb_mem[i]) rsxFree(fb_mem[i]); fb_mem[i] = NULL; }
+    if (z_mem) rsxFree(z_mem);
+    if (aac_mem) rsxFree(aac_mem);
+    if (aaz_mem) rsxFree(aaz_mem);
+    z_mem = aac_mem = aaz_mem = NULL;
+}
+
+/* Video mode, display buffers and render targets for the wanted 3D and
+   antialiasing; 2D when the display or the memory does not allow 3D. */
+static void setup_display(void)
 {
     static const u32 modes[] = { VIDEO_RESOLUTION_720, VIDEO_RESOLUTION_480, VIDEO_RESOLUTION_576, VIDEO_RESOLUTION_1080 };
-    static const struct { const unsigned char *data; } fps[FP_COUNT] = {
-        { fp_notex_fpo }, { fp_modulate_fpo }, { fp_replace_fpo }, { fp_decal_fpo }, { fp_blend_fpo }, { fp_add_fpo }
-    };
-    void *host;
-    u32 pitch, color_ofs[2], z_ofs, size, i;
-    void *zbuf, *ucode;
-    char name[8];
+    u32 pitch, color_ofs[2], z_ofs, i;
+    void *zbuf;
     int ok = 0;
 
-    if (ctx) {      /* already up (the hangar ran first): just reset the GL state */
-        defaults();
-        bind_target();
-        send_raster();
-        load_programs();
-        return;
-    }
-    host = memalign(1024 * 1024, HOST_SIZE);
-    rsxInit(&ctx, CB_SIZE, HOST_SIZE, host);
-    dxt_init();             /* texture compression on the SPUs */
+    aa_on = 0;
+    aa_sx = aa_sy = 1;
+    st_on = st_eye = st_drawn = 0;
     if (st_wanted) {
         st_on = set_mode(VIDEO_RESOLUTION_720_3D_FRAME_PACKING);
         if (!st_on) ps3glLog("ps3gl: the display does not take 3D (720p frame packing)");
@@ -1975,16 +1977,16 @@ void ps3glInit(void)
     scr_h = st_on ? 720 : vmode.height;
     disp_h = st_on ? 2 * 720 + EYE_GAP : scr_h;
 
-    rsxSetWriteBackendLabel(ctx, LABEL_INDEX, label_val);
-    rsxSetWaitLabel(ctx, LABEL_INDEX, label_val);
-    ++label_val;
-    wait_finish();
-    gcmSetFlipMode(GCM_FLIP_VSYNC);
 
     pitch = (u32)scr_w * 4;
     for (i = 0; i < 2; i++) {
-        void *fb = rsxMemalign(64, disp_h * pitch);
-        if (st_on) memset(fb, 0, disp_h * pitch);      /* the rows between the eyes */
+        void *fb = fb_mem[i] = rsxMemalign(64, disp_h * pitch);
+        if (!fb) {          /* no room for the taller 3D buffers: 2D */
+            free_display();
+            if (st_on) { ps3glLog("ps3gl: no RSX memory for 3D"); st_wanted = 0; setup_display(); return; }
+            ps3glLog("ps3gl: no RSX memory for the display"); exit(1);
+        }
+        memset(fb, 0, disp_h * pitch);      /* also the rows between the eyes */
         rsxAddressToOffset(fb, &color_ofs[i]);
         gcmSetDisplayBuffer(i, color_ofs[i], pitch, scr_w, disp_h);
         disp_ofs[i] = color_ofs[i];
@@ -1994,6 +1996,8 @@ void ps3glInit(void)
         void *ac = aa_wanted && !st_on ? rsxMemalign(64, scr_h * sy * apitch) : NULL;
         void *az = ac ? rsxMemalign(64, scr_h * sy * apitch) : NULL;
         if (az) {
+            aac_mem = ac;
+            aaz_mem = az;
             u32 az_ofs;
             rsxAddressToOffset(ac, &aa_color_ofs);
             rsxAddressToOffset(az, &az_ofs);
@@ -2020,7 +2024,7 @@ void ps3glInit(void)
             rsxFree(ac);
         }
     }
-    zbuf = aa_on ? NULL : rsxMemalign(64, scr_h * pitch);
+    zbuf = z_mem = aa_on ? NULL : rsxMemalign(64, scr_h * pitch);
     if (zbuf) rsxAddressToOffset(zbuf, &z_ofs);
     else z_ofs = 0;
     for (i = 0; i < 2; i++) {
@@ -2047,6 +2051,75 @@ void ps3glInit(void)
         surf_r[i] = *sf;
         surf_r[i].colorOffset[0] = color_ofs[i] + (u32)(scr_h + EYE_GAP) * pitch;
     }
+
+}
+
+/* Wait until the RSX has drawn everything and the last flip happened. */
+static void idle_display(void)
+{
+    u32 t = 0;
+    wait_finish();
+    while (!first_flip && gcmGetFlipStatus()) {
+        usleep(200);
+        if (++t > 50000) break;
+    }
+}
+
+void ps3glReconfigure(int stereo, int antialiasing)
+{
+    int i;
+    st_wanted = stereo;
+    aa_wanted = antialiasing;
+    if (!ctx) return;
+    idle_display();
+    free_display();
+    setup_display();
+    cur_fb = 0;
+    first_flip = 1;
+    for (i = 0; i < 8; i++) rsxSetViewportClip(ctx, i, scr_w, scr_h);
+    bind_target();
+    send_raster();
+    dirty = D_ALL;
+    ps3glLog("ps3gl: now %dx%d%s, %s", scr_w, scr_h, st_on ? " 3D" : "",
+             !aa_on ? "no antialiasing" : aa_sy == 2 ? "4x antialiasing" : "2x antialiasing");
+}
+
+void ps3glShutdown(void)
+{
+    if (!ctx) return;
+    idle_display();
+    if (st_on) {    /* leave the display in plain 2D for whatever runs next */
+        set_mode(VIDEO_RESOLUTION_720);
+        st_on = 0;
+    }
+}
+
+void ps3glInit(void)
+{
+    static const struct { const unsigned char *data; } fps[FP_COUNT] = {
+        { fp_notex_fpo }, { fp_modulate_fpo }, { fp_replace_fpo }, { fp_decal_fpo }, { fp_blend_fpo }, { fp_add_fpo }
+    };
+    void *host;
+    u32 size, i;
+    void *ucode;
+    char name[8];
+
+    if (ctx) {      /* already up (the hangar ran first): just reset the GL state */
+        defaults();
+        bind_target();
+        send_raster();
+        load_programs();
+        return;
+    }
+    host = memalign(1024 * 1024, HOST_SIZE);
+    rsxInit(&ctx, CB_SIZE, HOST_SIZE, host);
+    dxt_init();             /* texture compression on the SPUs */
+    rsxSetWriteBackendLabel(ctx, LABEL_INDEX, label_val);
+    rsxSetWaitLabel(ctx, LABEL_INDEX, label_val);
+    ++label_val;
+    wait_finish();
+    gcmSetFlipMode(GCM_FLIP_VSYNC);
+    setup_display();
 
     vb = (u8 *)rsxMemalign(128, VB_BYTES);
     if (!vb) { ps3glLog("ps3gl: no RSX memory for the vertex buffer"); exit(1); }
@@ -2105,10 +2178,16 @@ void ps3glSwapBuffers(void)
         gcmResetFlipStatus();
     }
     if (aa_on) aa_resolve(disp_ofs[cur_fb]);
-    if (st_on && !(st_drawn & 2))   /* a 2D frame (hangar, splash): both eyes see it */
-        rsxSetTransferData(ctx, GCM_TRANSFER_LOCAL_TO_LOCAL,
-                           disp_ofs[cur_fb] + (u32)(scr_h + EYE_GAP) * scr_w * 4, scr_w * 4,
-                           disp_ofs[cur_fb], scr_w * 4, scr_w * 4, scr_h);
+    if (st_on && !(st_drawn & 2)) {
+        /* drawn for one eye only: the other one stays dark. (Copying the
+           picture across with the blit engine stopped the RSX: the hangar
+           froze in 3D. Programs draw such frames once per eye instead.) */
+        st_eye = 1;
+        bind_target();
+        rsxSetClearColor(ctx, 0);
+        rsxClearSurface(ctx, GCM_CLEAR_R | GCM_CLEAR_G | GCM_CLEAR_B | GCM_CLEAR_A);
+        send_clear_values();
+    }
     gcmSetFlip(ctx, cur_fb);
     rsxFlushBuffer(ctx);
     gcmSetWaitFlip(ctx);

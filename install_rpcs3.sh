@@ -17,4 +17,5 @@ ln -sfn "$DATA" "$USRDIR/fgdata"
 python3 "$HOME/ps3dev/bin/sfo.py" --title "FlightGear 0.9.10" --appid "FGFS00910" \
     -f "$HOME/ps3dev/bin/sfo.xml" "$GAME/PARAM.SFO"
 cp "$R/build/fgfs.run.elf" "$USRDIR/EBOOT.BIN"
+cp "$R/build/fgfs.run.elf" "$USRDIR/RELOAD.SELF"      # what "back to the hangar" starts
 echo "installed to $GAME"

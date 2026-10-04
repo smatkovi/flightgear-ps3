@@ -21,6 +21,12 @@ void ps3glSetEye(int eye);
    (0.05 = 2.5% of the width); convergence: distance in eye-space units at
    which both pictures meet (the screen plane) */
 void ps3glSetStereoParams(float separation, float convergence);
+/* Switch 3D and antialiasing while running (video mode and render targets
+   are made anew; the display may go dark for a moment). */
+void ps3glReconfigure(int stereo, int antialiasing);
+/* Before the program ends or starts another one: let the RSX finish and
+   put the display back into 2D. */
+void ps3glShutdown(void);
 /* called when the RSX stops answering while antialiasing or 3D is on */
 void ps3glSetHangHandler(void (*f)(void));
 void ps3glInit(void);

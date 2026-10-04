@@ -16,6 +16,7 @@
 #include <strings.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <time.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
@@ -31,6 +32,8 @@
 
 #include <lv2/process.h>
 #include <sys/process.h>
+#include <io/pad.h>
+#include <AL/alut.h>
 
 #include <ps3gl.h>
 #include "../ps3pad.h"
@@ -541,6 +544,7 @@ static float convergence = 0.0f;
 // minutes of flight end the trial; a start that finds 2 knows the console
 // froze (a hard RSX hang the program cannot catch) and switches both off.
 static int trial = 0;
+static time_t trial_since;
 #define ANTIALIASING_MENU 0
 static string cfg_set;      // the aircraft in hangar.cfg, until the list is read
 static http_dl dl;
@@ -583,7 +587,7 @@ static void draw_main()
     }
     // antialiasing (Triangle) froze a real PS3 at 720p and blacked out 1080p: hidden until that is solved
     string opts = string("3D: ") + (!stereo ? "off" : ps3glStereo() ? "on" : "on, but the TV does not take 3D")
-        + "   (Square: switch, restarts)";
+        + "   (Square: switch)";
     text(80, 640, 19, opts, 0.6f, 0.65f, 0.75f);
     help("Up/Down: choose     X: select     Left/Right: change airport     START: fly");
 }
@@ -665,9 +669,15 @@ static void draw()
     }
 }
 
+// In 3D every picture is drawn once for each eye
+static int eyes() { return ps3glStereo() ? 2 : 1; }
+
 static void present()
 {
-    draw();
+    for (int e = 0; e < eyes(); e++) {
+        ps3glSetEye(e);
+        draw();
+    }
     ps3glSwapBuffers();
 }
 
@@ -678,9 +688,12 @@ static void unzip_progress(int done, int total)
     char b[64];
     snprintf(b, sizeof b, "%d of %d files", done, total);
     l.push_back(b);
-    frame_begin();
-    draw_list();
-    box("Installing " + entries[unzip_entry].title, l, "");
+    for (int e = 0; e < eyes(); e++) {
+        ps3glSetEye(e);
+        frame_begin();
+        draw_list();
+        box("Installing " + entries[unzip_entry].title, l, "");
+    }
     ps3glSwapBuffers();
 }
 
@@ -757,17 +770,14 @@ static void handle(unsigned b)
         if (main_sel == 1 && pressed_rep(b, PS3PAD_RIGHT)) airport = (airport + 1) % n_airports;
         if (ANTIALIASING_MENU && pressed(b, PS3PAD_TRIANGLE)) {     /* takes a restart: the render targets */
             antialiasing = !antialiasing;
-            if (antialiasing) stereo = 0;
-            trial = antialiasing;
+            stereo = 0;
+            trial = antialiasing ? 2 : 0;
+            trial_since = time(0);
             save_cfg();
-            hangar_restart();
+            ps3glReconfigure(0, antialiasing);
         }
         if (pressed(b, PS3PAD_SQUARE)) {
-            stereo = !stereo;
-            if (stereo) antialiasing = 0;
-            trial = stereo;
-            save_cfg();
-            hangar_restart();
+            hangar_toggle_stereo();
         }
         if (pressed(b, PS3PAD_CROSS)) {
             if (main_sel == 0) { screen = SCR_LIST; list_sel = cur >= 0 ? cur : 0; }
@@ -861,6 +871,7 @@ void hangar_run(int *argc, char **argv, int max_args)
         trial = 2;
         save_cfg();
     }
+    trial_since = time(0);
     ps3glSetAntialiasing(antialiasing && !stereo);
     ps3glSetStereo(stereo);
     ps3glSetHangHandler(aa_hang);
@@ -903,6 +914,7 @@ void hangar_run(int *argc, char **argv, int max_args)
         if (screen == SCR_MAIN && main_sel == 2 && pressed(b, PS3PAD_CROSS)) fly = true;
         if (fly && cur >= 0) break;
         handle(b);
+        if (trial && time(0) - trial_since > 120) hangar_confirm_graphics();
         prev_buttons = b;
         present();
     }
@@ -929,8 +941,11 @@ void hangar_run(int *argc, char **argv, int max_args)
     g_starting = true;
 
     // the loading screen comes from FlightGear; show something until then
-    frame_begin();
-    text(60, 380, 30, "Starting FlightGear with " + entries[cur].title + " ...", 1, 1, 1);
+    for (int e = 0; e < eyes(); e++) {
+        ps3glSetEye(e);
+        frame_begin();
+        text(60, 380, 30, "Starting FlightGear with " + entries[cur].title + " ...", 1, 1, 1);
+    }
     ps3glSwapBuffers();
 }
 
@@ -970,11 +985,26 @@ void hangar_restart()
     if (g_batch) _exit(1);      /* would start the same failing flight again */
     fflush(stdout);
     fflush(stderr);
+    /* hand over a quiet console: sound off, RSX idle, display in 2D */
+    alutExit();
+    ps3glShutdown();
+    ioPadEnd();
     /* the plainly signed copy first: on a console the NPDRM EBOOT.BIN
        cannot be spawned like this, and the program ended up in the XMB */
     sysProcessExitSpawn2(USRDIR "/RELOAD.SELF", NULL, NULL, NULL, 0, 1001, SYS_PROCESS_SPAWN_STACK_SIZE_1M);
     sysProcessExitSpawn2(USRDIR "/EBOOT.BIN", NULL, NULL, NULL, 0, 1001, SYS_PROCESS_SPAWN_STACK_SIZE_1M);
     _exit(1);
+}
+
+// live, like GT5: a restart after a mode change froze the console
+void hangar_toggle_stereo()
+{
+    stereo = !stereo;
+    antialiasing = 0;
+    trial = stereo ? 2 : 0;     /* on trial from now: see trial */
+    trial_since = time(0);
+    save_cfg();
+    ps3glReconfigure(stereo, 0);
 }
 
 void hangar_stereo_get(int *p, float *c)
