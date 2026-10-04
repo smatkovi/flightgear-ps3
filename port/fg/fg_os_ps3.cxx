@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <malloc.h>
+#include <sys/time.h>
 
 #include <string>
 
@@ -89,13 +90,33 @@ void fgOSExit(int code)
 // file: on the console it is the only view of what the program is doing.
 #define HEARTBEAT 600
 
+static unsigned long long now_us()
+{
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    return (unsigned long long)tv.tv_sec * 1000000ULL + tv.tv_usec;
+}
+
+// PPU time per frame (simulation and drawing, without waiting for the
+// display), to see how much of the 16.7 ms of a 60 Hz frame is left
+static unsigned long long work_sum, work_max, period_start;
+static unsigned long work_frames;
+
 static void heartbeat(unsigned long frame)
 {
     char st[256];
     struct mallinfo mi = mallinfo();
+    unsigned long long t = now_us();
     ps3glStats(st, sizeof st);
     ps3glLog("frame %lu: heap %luK in use, %luK from the system; %s", frame,
              (unsigned long)mi.uordblks >> 10, (unsigned long)mi.arena >> 10, st);
+    if (work_frames && period_start)
+        ps3glLog("ppu: %.1f ms per frame on average, at most %.1f ms; %.1f frames/s",
+                 work_sum / 1000.0 / work_frames, work_max / 1000.0,
+                 work_frames * 1e6 / (double)(t - period_start));
+    work_sum = work_max = 0;
+    work_frames = 0;
+    period_start = t;
     ps3pad_report(st, sizeof st);
     ps3glLog("%s", st);
 }
@@ -139,10 +160,15 @@ void fgOSMainLoop()
 #ifdef PS3_DEBUG
         ps3_syscalls_check("loop");
 #endif
+        unsigned long long t0 = now_us(), work;
         ps3pad_poll();
         if (IdleHandler) (*IdleHandler)();
         if (NeedRedraw && DrawHandler) {
             (*DrawHandler)();
+            work = now_us() - t0;
+            work_sum += work;
+            if (work > work_max) work_max = work;
+            work_frames++;
             ps3glSwapBuffers();     // also runs the system callbacks (XMB quit)
             NeedRedraw = false;
             if (frame++ % HEARTBEAT == 0) heartbeat(frame - 1);
