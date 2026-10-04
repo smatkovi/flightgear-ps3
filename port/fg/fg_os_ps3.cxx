@@ -24,8 +24,10 @@
 #include <fcntl.h>
 #include <malloc.h>
 #include <sys/time.h>
+#include <math.h>
 
 #include <string>
+#include <algorithm>
 
 #include <sys/process.h>
 #include <sysutil/sysutil.h>
@@ -46,6 +48,7 @@
 SYS_PROCESS_PARAM(1001, 0x100000);
 
 extern int fgfs_main(int argc, char **argv);    // bootstrap.cxx
+extern double delta_time_sec;                   // main.cxx, frame time of the animations
 
 static fgIdleHandler IdleHandler = 0;
 static fgDrawHandler DrawHandler = 0;
@@ -67,10 +70,13 @@ void fgRegisterMouseMotionHandler(fgMouseMotionHandler func) { MouseMotionHandle
 
 void fgOSInit(int* argc, char** argv) {}
 
+static void stereo_apply();
+
 void fgOSOpenWindow(int w, int h, int bpp, bool alpha, bool stencil, bool fullscreen)
 {
     ps3glInit();
     ps3glGetSize(&WinW, &WinH);
+    stereo_apply();
 
     // The display decides the size, not the options.
     fgSetInt("/sim/startup/xsize", WinW);
@@ -184,6 +190,31 @@ static void pad_properties()
 static bool menu_open;
 static int menu_sel;
 static unsigned menu_prev;
+enum { M_RESUME, M_RUMBLE, M_PARALLAX, M_CONVERGENCE, M_HANGAR, M_QUIT };
+
+// the menu's entries: the 3D settings only when the display runs in 3D
+static int menu_items(int *ids)
+{
+    int n = 0;
+    ids[n++] = M_RESUME;
+    ids[n++] = M_RUMBLE;
+    if (ps3glStereo()) { ids[n++] = M_PARALLAX; ids[n++] = M_CONVERGENCE; }
+    ids[n++] = M_HANGAR;
+    ids[n++] = M_QUIT;
+    return n;
+}
+
+// 3D strength as in GT5: parallax 1-10 is the shift of each eye's picture at
+// infinity (level 10: 5.5% of the screen width between the eyes, about the
+// distance of the eyes on a large TV); convergence 0.00-1.00 puts the screen
+// plane from 1 m (cockpit panel) to 50 m in front of the eyes
+static void stereo_apply()
+{
+    int p;
+    float c;
+    hangar_stereo_get(&p, &c);
+    ps3glSetStereoParams(p * 0.0055f, powf(50.0f, c));
+}
 
 static void menu_input()
 {
@@ -200,15 +231,26 @@ static void menu_input()
         }
         return;
     }
-    if (edge & (1u << PS3PAD_UP)) menu_sel = (menu_sel + 3) % 4;
-    if (edge & (1u << PS3PAD_DOWN)) menu_sel = (menu_sel + 1) % 4;
+    int ids[6], n = menu_items(ids);
+    if (edge & (1u << PS3PAD_UP)) menu_sel = (menu_sel + n - 1) % n;
+    if (edge & (1u << PS3PAD_DOWN)) menu_sel = (menu_sel + 1) % n;
+    int dir = (edge & (1u << PS3PAD_RIGHT)) ? 1 : (edge & (1u << PS3PAD_LEFT)) ? -1 : 0;
+    if (dir && (ids[menu_sel] == M_PARALLAX || ids[menu_sel] == M_CONVERGENCE)) {
+        int p;
+        float c;
+        hangar_stereo_get(&p, &c);
+        if (ids[menu_sel] == M_PARALLAX) p = std::max(1, std::min(10, p + dir));
+        else c = std::max(0.0f, std::min(1.0f, floorf(c * 20.0f + 0.5f) / 20.0f + dir * 0.05f));
+        hangar_stereo_set(p, c);
+        stereo_apply();
+    }
     bool resume = edge & ((1u << PS3PAD_START) | (1u << PS3PAD_CIRCLE));
     if (edge & (1u << PS3PAD_CROSS)) {
-        switch (menu_sel) {
-        case 0: resume = true; break;
-        case 1: fgSetBool("/input/ps3/rumble", !fgGetBool("/input/ps3/rumble", true)); break;
-        case 2: hangar_mark_quit(); hangar_restart(); break;
-        case 3: hangar_mark_quit(); exit(0); break;
+        switch (ids[menu_sel]) {
+        case M_RESUME: resume = true; break;
+        case M_RUMBLE: fgSetBool("/input/ps3/rumble", !fgGetBool("/input/ps3/rumble", true)); break;
+        case M_HANGAR: hangar_mark_quit(); hangar_restart(); break;
+        case M_QUIT: hangar_mark_quit(); exit(0); break;
         }
     }
     if (resume) {
@@ -221,20 +263,37 @@ static void menu_input()
 
 static void menu_draw()
 {
-    const char *items[4] = { "Resume", fgGetBool("/input/ps3/rumble", true) ? "Rumble: on" : "Rumble: off",
-                             "Back to the hangar", "Quit FlightGear" };
-    hangar_menu_draw("Paused", items, 4, menu_sel);
+    int ids[6], n = menu_items(ids), p;
+    float c;
+    char par[64], conv[64];
+    const char *items[6];
+    hangar_stereo_get(&p, &c);
+    snprintf(par, sizeof par, "3D parallax: < %d >", p);
+    snprintf(conv, sizeof conv, "3D convergence: < %.2f >", c);
+    for (int i = 0; i < n; i++) {
+        switch (ids[i]) {
+        case M_RESUME: items[i] = "Resume"; break;
+        case M_RUMBLE: items[i] = fgGetBool("/input/ps3/rumble", true) ? "Rumble: on" : "Rumble: off"; break;
+        case M_PARALLAX: items[i] = par; break;
+        case M_CONVERGENCE: items[i] = conv; break;
+        case M_HANGAR: items[i] = "Back to the hangar"; break;
+        default: items[i] = "Quit FlightGear"; break;
+        }
+    }
+    hangar_menu_draw("Paused", items, n, menu_sel);
 }
 
 void fgOSMainLoop()
 {
     unsigned long frame = 0;
     bool running = false;
+    unsigned long long run_since = 0;
     while (1) {
         if (!running && fgGetBool("/sim/sceneryloaded")) {
             std::string w = aircraft_problems();
             running = true;
             hangar_mark_running(w.c_str());
+            run_since = now_us();
             if (!w.empty())     // shown by Nasal/ps3hangar.nas
                 fgSetString("/sim/ps3/aircraft-warning", ("This aircraft has problems: " + w + ".").c_str());
         }
@@ -244,11 +303,24 @@ void fgOSMainLoop()
         unsigned long long t0 = now_us(), work;
         ps3pad_poll();
         if (running) menu_input();
+        if (running && run_since && now_us() - run_since > 120000000ULL) {
+            hangar_confirm_graphics();      // two minutes without freezing
+            run_since = 0;
+        }
         pad_properties();
         if (IdleHandler) (*IdleHandler)();
         if (NeedRedraw && DrawHandler) {
-            (*DrawHandler)();
-            if (menu_open) menu_draw();
+            // in 3D the scene twice, once for each eye; the second time
+            // without advancing the animations (sky, panel, controls)
+            int eyes = ps3glStereo() ? 2 : 1;
+            for (int eye = 0; eye < eyes; eye++) {
+                double dt = delta_time_sec;
+                if (eyes == 2) ps3glSetEye(eye);
+                if (eye) delta_time_sec = 0.0;
+                (*DrawHandler)();
+                delta_time_sec = dt;
+                if (menu_open) menu_draw();
+            }
             work = now_us() - t0;
             work_sum += work;
             if (work > work_max) work_max = work;

@@ -533,6 +533,16 @@ static bool pressed_rep(unsigned b, int btn)
 enum { SCR_MAIN, SCR_LIST, SCR_ASK_DL, SCR_DL, SCR_ASK_DEL, SCR_MSG };
 
 static int screen, main_sel = 2, list_sel, list_top, cur = -1, airport, antialiasing = 0;
+// 3D as in GT5: on/off (takes a restart), parallax 1-10, convergence 0.00-1.00
+static int stereo = 0, parallax = 3;
+static float convergence = 0.0f;
+// Antialiasing or 3D just switched on is on trial: 1 = the next start tries
+// it, 2 = that start is running. A clean quit, back to the hangar or two
+// minutes of flight end the trial; a start that finds 2 knows the console
+// froze (a hard RSX hang the program cannot catch) and switches both off.
+static int trial = 0;
+#define ANTIALIASING_MENU 0
+static string cfg_set;      // the aircraft in hangar.cfg, until the list is read
 static http_dl dl;
 static int dl_entry = -1;
 static string dl_file;
@@ -571,8 +581,10 @@ static void draw_main()
         std::map<string, string>::iterator n = notes.find(e->set);
         if (n != notes.end()) text(80, 560, 21, "Note: " + n->second, 1, 0.6f, 0.3f);
     }
-    text(80, 640, 19, antialiasing ? "Antialiasing: on   (Triangle: off, restarts)"
-                                    : "Antialiasing: off   (Triangle: on, restarts)", 0.6f, 0.65f, 0.75f);
+    // antialiasing (Triangle) froze a real PS3 at 720p and blacked out 1080p: hidden until that is solved
+    string opts = string("3D: ") + (!stereo ? "off" : ps3glStereo() ? "on" : "on, but the TV does not take 3D")
+        + "   (Square: switch, restarts)";
+    text(80, 640, 19, opts, 0.6f, 0.65f, 0.75f);
     help("Up/Down: choose     X: select     Left/Right: change airport     START: fly");
 }
 
@@ -716,10 +728,12 @@ static void start_download()
 
 static void save_cfg();
 
-// The RSX hung with antialiasing on: start again without it
+// The RSX hung with antialiasing or 3D on: start again without them
 static void aa_hang()
 {
     antialiasing = 0;
+    stereo = 0;
+    trial = 0;
     save_cfg();
     hangar_restart();
 }
@@ -727,9 +741,9 @@ static void aa_hang()
 // aircraft, airport and antialiasing for the next start
 static void save_cfg()
 {
-    char c[200];
-    snprintf(c, sizeof c, "aircraft=%s\nairport=%d\nantialiasing=%d\n",
-             cur >= 0 ? entries[cur].set.c_str() : "", airport, antialiasing);
+    char c[300];
+    snprintf(c, sizeof c, "aircraft=%s\nairport=%d\nantialiasing=%d\nstereo=%d\nparallax=%d\nconvergence=%.2f\ntrial=%d\n",
+             cur >= 0 ? entries[cur].set.c_str() : cfg_set.c_str(), airport, antialiasing, stereo, parallax, convergence, trial);
     write_file(CFG_FILE, c);
 }
 
@@ -741,8 +755,17 @@ static void handle(unsigned b)
         if (pressed_rep(b, PS3PAD_DOWN)) main_sel = (main_sel + 1) % 3;
         if (main_sel == 1 && pressed_rep(b, PS3PAD_LEFT)) airport = (airport + n_airports - 1) % n_airports;
         if (main_sel == 1 && pressed_rep(b, PS3PAD_RIGHT)) airport = (airport + 1) % n_airports;
-        if (pressed(b, PS3PAD_TRIANGLE)) {      /* takes a restart: the render targets */
+        if (ANTIALIASING_MENU && pressed(b, PS3PAD_TRIANGLE)) {     /* takes a restart: the render targets */
             antialiasing = !antialiasing;
+            if (antialiasing) stereo = 0;
+            trial = antialiasing;
+            save_cfg();
+            hangar_restart();
+        }
+        if (pressed(b, PS3PAD_SQUARE)) {
+            stereo = !stereo;
+            if (stereo) antialiasing = 0;
+            trial = stereo;
             save_cfg();
             hangar_restart();
         }
@@ -801,9 +824,19 @@ static const char *arg_value(int argc, char **argv, const char *opt)
 
 void hangar_run(int *argc, char **argv, int max_args)
 {
-    string cfg_set, a;
+    string a;
     vector<string> cfg = split(read_file(CFG_FILE, 4096), '\n');
     const char *from_args = arg_value(*argc, argv, "--aircraft=");
+
+    for (size_t i = 0; i < cfg.size(); i++) {
+        if (!cfg[i].compare(0, 9, "aircraft=")) cfg_set = trim(cfg[i].substr(9));
+        if (!cfg[i].compare(0, 8, "airport=")) airport = atoi(cfg[i].c_str() + 8) % n_airports;
+        if (!cfg[i].compare(0, 13, "antialiasing=")) antialiasing = ANTIALIASING_MENU && atoi(cfg[i].c_str() + 13) != 0;
+        if (!cfg[i].compare(0, 7, "stereo=")) stereo = atoi(cfg[i].c_str() + 7) != 0;
+        if (!cfg[i].compare(0, 9, "parallax=")) parallax = std::max(1, std::min(10, atoi(cfg[i].c_str() + 9)));
+        if (!cfg[i].compare(0, 6, "trial=")) trial = atoi(cfg[i].c_str() + 6);
+        if (!cfg[i].compare(0, 12, "convergence=")) convergence = std::max(0.0f, std::min(1.0f, (float)atof(cfg[i].c_str() + 12)));
+    }
 
     // --no-hangar in fgfs.args (batch tests): start right away with the
     // options from fgfs.args, but still record the start
@@ -815,15 +848,21 @@ void hangar_run(int *argc, char **argv, int max_args)
         write_file(STATUS_FILE, "starting " + g_set + "\n");
         g_starting = true;
         g_batch = true;
+        ps3glSetStereo(stereo);     // 3D from the hangar settings (tests)
         return;
     }
 
-    for (size_t i = 0; i < cfg.size(); i++) {
-        if (!cfg[i].compare(0, 9, "aircraft=")) cfg_set = trim(cfg[i].substr(9));
-        if (!cfg[i].compare(0, 8, "airport=")) airport = atoi(cfg[i].c_str() + 8) % n_airports;
-        if (!cfg[i].compare(0, 13, "antialiasing=")) antialiasing = atoi(cfg[i].c_str() + 13) != 0;
+    bool froze = false;
+    if (trial >= 2 && (antialiasing || stereo)) {
+        froze = true;
+        antialiasing = stereo = trial = 0;
+        save_cfg();
+    } else if (trial == 1) {
+        trial = 2;
+        save_cfg();
     }
-    ps3glSetAntialiasing(antialiasing);
+    ps3glSetAntialiasing(antialiasing && !stereo);
+    ps3glSetStereo(stereo);
     ps3glSetHangHandler(aa_hang);
     ps3glInit();
     ps3glGetSize(&W, &H);
@@ -838,6 +877,12 @@ void hangar_run(int *argc, char **argv, int max_args)
     if (cur < 0 && from_args) cur = find_set(from_args);
     if (cur < 0) cur = find_set("c172p");
     if (cur < 0 && !entries.empty() && entries[0].installed) cur = 0;
+    if (froze) {
+        vector<string> l;
+        l.push_back("The last start with antialiasing or 3D did not end: the console");
+        l.push_back("probably froze. Both are switched off again.");
+        message("Antialiasing and 3D switched off", l);
+    }
     if (!msg_lines.empty()) screen = SCR_MSG;
 
     for (;;) {
@@ -897,8 +942,16 @@ void hangar_mark_running(const char *warning)
     set_note(g_set, warning && *warning ? string("loaded with problems: ") + warning : string());
 }
 
+void hangar_confirm_graphics()
+{
+    if (!trial) return;
+    trial = 0;
+    save_cfg();
+}
+
 void hangar_mark_quit()
 {
+    hangar_confirm_graphics();
     write_file(STATUS_FILE, g_starting ? "quit-loading " + g_set + "\n" : string("quit\n"));
 }
 
@@ -922,4 +975,17 @@ void hangar_restart()
     sysProcessExitSpawn2(USRDIR "/RELOAD.SELF", NULL, NULL, NULL, 0, 1001, SYS_PROCESS_SPAWN_STACK_SIZE_1M);
     sysProcessExitSpawn2(USRDIR "/EBOOT.BIN", NULL, NULL, NULL, 0, 1001, SYS_PROCESS_SPAWN_STACK_SIZE_1M);
     _exit(1);
+}
+
+void hangar_stereo_get(int *p, float *c)
+{
+    *p = parallax;
+    *c = convergence;
+}
+
+void hangar_stereo_set(int p, float c)
+{
+    parallax = p;
+    convergence = c;
+    save_cfg();
 }

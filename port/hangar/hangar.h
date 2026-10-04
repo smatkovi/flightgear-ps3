@@ -11,6 +11,8 @@ void hangar_run(int *argc, char **argv, int max_args);
 /* The simulator is up: the aircraft loaded. warning: problems found in the
    log (empty if none), shown in the hangar next time. */
 void hangar_mark_running(const char *warning);
+/* Antialiasing or 3D ran long enough without freezing the console: keep it. */
+void hangar_confirm_graphics();
 /* Normal quit (XMB). */
 void hangar_mark_quit();
 /* FlightGear stopped with an error while starting. */
@@ -19,6 +21,9 @@ void hangar_mark_failed(int code);
 bool hangar_starting();
 /* The START menu during the flight, drawn over the scene */
 void hangar_menu_draw(const char *title, const char **items, int n, int sel);
+/* 3D settings (GT5's): parallax 1-10, convergence 0.00-1.00; set saves them */
+void hangar_stereo_get(int *parallax, float *convergence);
+void hangar_stereo_set(int parallax, float convergence);
 /* Restart the program into the hangar; does not return. */
 void hangar_restart();
 

@@ -54,10 +54,20 @@ static gcmSurface aa_surf;
 static int aa_on, aa_sx = 1, aa_sy = 1, aa_wanted = 0;
 static void (*hang_handler)(void);
 static u32 aa_color_ofs, disp_ofs[2];
+/* Stereoscopic 3D, 720p frame packing: a display buffer holds the left
+   eye's picture in rows 0-719 and the right eye's in rows 750-1469 (the
+   30 rows between stay black); each eye is a surface of its own. The eyes
+   differ by a horizontal shift of the perspective projection that grows
+   with distance: x' = x + s * (1 - D / depth), zero at the convergence
+   distance D (GT5's "parallax" and "convergence"). */
+#define EYE_GAP         30
+static gcmSurface surf_r[2];
+static int st_wanted, st_on, st_eye, st_drawn;
+static float st_sep = 0.0165f, st_conv = 1.0f;
 
 static u32 cur_fb, first_flip = 1, label_val = 1;
 static videoResolution vmode;
-static int scr_w, scr_h;
+static int scr_w, scr_h, disp_h;
 
 static u8 *vb;          /* per-frame vertex scratch, RSX memory */
 static u32 vb_off;
@@ -104,7 +114,7 @@ static void wait_finish(void)
             ps3glLog("ps3gl: RSX label timeout");
             /* the RSX hangs: with antialiasing (untested territory on some
                consoles) let the program switch it off and start again */
-            if (aa_on && hang_handler) hang_handler();
+            if ((aa_on || st_on) && hang_handler) hang_handler();
             break;
         }
     }
@@ -483,6 +493,15 @@ static void flush_matrix(void)
     int i;
 
     mat_mul(mvp, pr_stack[pr_top], mv);
+    if (st_on) {
+        /* perspective projections only: 2D (HUD, menus) stays on the screen plane */
+        const GLfloat *p = pr_stack[pr_top];
+        if (p[11] < -0.5f && p[15] > -1e-6f && p[15] < 1e-6f) {
+            GLfloat sep = st_eye ? st_sep : -st_sep;
+            for (i = 0; i < 4; i++) mvp[i * 4] += sep * mvp[i * 4 + 3];
+            mvp[12] -= sep * st_conv;
+        }
+    }
     for (i = 0; i < 4; i++) { mat_row(r, mvp, i); set_c(uc.mvp[i], r); }
     for (i = 0; i < 3; i++) { mat_row(r, mv, i); set_c(uc.mv[i], r); }
 
@@ -1849,11 +1868,30 @@ static int set_mode(u32 id)
 }
 
 void ps3glSetAntialiasing(int on) { aa_wanted = on; }
+static void bind_target(void);
+
+void ps3glSetStereo(int on) { st_wanted = on; }
+int ps3glStereo(void) { return st_on; }
+
+void ps3glSetStereoParams(float separation, float convergence)
+{
+    st_sep = separation;
+    st_conv = convergence;
+}
+
+void ps3glSetEye(int eye)
+{
+    if (!st_on) return;
+    st_eye = eye & 1;
+    st_drawn |= 1 << st_eye;
+    bind_target();
+    dirty |= D_MATRIX;
+}
 void ps3glSetHangHandler(void (*f)(void)) { hang_handler = f; }
 
 static void bind_target(void)
 {
-    rsxSetSurface(ctx, aa_on ? &aa_surf : &surf[cur_fb]);
+    rsxSetSurface(ctx, aa_on ? &aa_surf : st_on && st_eye ? &surf_r[cur_fb] : &surf[cur_fb]);
 }
 
 /* Downsample the multisampled scene into display buffer `dst`: bilinear at
@@ -1926,10 +1964,16 @@ void ps3glInit(void)
     host = memalign(1024 * 1024, HOST_SIZE);
     rsxInit(&ctx, CB_SIZE, HOST_SIZE, host);
     dxt_init();             /* texture compression on the SPUs */
+    if (st_wanted) {
+        st_on = set_mode(VIDEO_RESOLUTION_720_3D_FRAME_PACKING);
+        if (!st_on) ps3glLog("ps3gl: the display does not take 3D (720p frame packing)");
+        ok = st_on;
+    }
     for (i = 0; i < sizeof modes / sizeof modes[0] && !ok; i++) ok = set_mode(modes[i]);
     if (!ok) { ps3glLog("ps3gl: no usable video mode"); exit(1); }
     scr_w = vmode.width;
-    scr_h = vmode.height;
+    scr_h = st_on ? 720 : vmode.height;
+    disp_h = st_on ? 2 * 720 + EYE_GAP : scr_h;
 
     rsxSetWriteBackendLabel(ctx, LABEL_INDEX, label_val);
     rsxSetWaitLabel(ctx, LABEL_INDEX, label_val);
@@ -1939,14 +1983,15 @@ void ps3glInit(void)
 
     pitch = (u32)scr_w * 4;
     for (i = 0; i < 2; i++) {
-        void *fb = rsxMemalign(64, scr_h * pitch);
+        void *fb = rsxMemalign(64, disp_h * pitch);
+        if (st_on) memset(fb, 0, disp_h * pitch);      /* the rows between the eyes */
         rsxAddressToOffset(fb, &color_ofs[i]);
-        gcmSetDisplayBuffer(i, color_ofs[i], pitch, scr_w, scr_h);
+        gcmSetDisplayBuffer(i, color_ofs[i], pitch, scr_w, disp_h);
         disp_ofs[i] = color_ofs[i];
     }
     {   /* 4x antialiasing up to 720p, 2x above (fill rate) */
         u32 sx = 2, sy = scr_h > 720 ? 1 : 2, apitch = (u32)scr_w * sx * 4;
-        void *ac = aa_wanted ? rsxMemalign(64, scr_h * sy * apitch) : NULL;
+        void *ac = aa_wanted && !st_on ? rsxMemalign(64, scr_h * sy * apitch) : NULL;
         void *az = ac ? rsxMemalign(64, scr_h * sy * apitch) : NULL;
         if (az) {
             u32 az_ofs;
@@ -1999,6 +2044,8 @@ void ps3glInit(void)
         sf->antiAlias = GCM_SURFACE_CENTER_1;
         sf->width = scr_w;
         sf->height = scr_h;
+        surf_r[i] = *sf;
+        surf_r[i].colorOffset[0] = color_ofs[i] + (u32)(scr_h + EYE_GAP) * pitch;
     }
 
     vb = (u8 *)rsxMemalign(128, VB_BYTES);
@@ -2036,7 +2083,7 @@ void ps3glInit(void)
     rsxSetColorMaskMrt(ctx, 0);
     send_raster();
     load_programs();
-    ps3glLog("ps3gl: %dx%d, %s, vertex buffer %d MB", scr_w, scr_h,
+    ps3glLog("ps3gl: %dx%d%s, %s, vertex buffer %d MB", scr_w, scr_h, st_on ? " 3D" : "",
              !aa_on ? "no antialiasing" : aa_sy == 2 ? "4x antialiasing" : "2x antialiasing", VB_BYTES >> 20);
 }
 
@@ -2058,12 +2105,17 @@ void ps3glSwapBuffers(void)
         gcmResetFlipStatus();
     }
     if (aa_on) aa_resolve(disp_ofs[cur_fb]);
+    if (st_on && !(st_drawn & 2))   /* a 2D frame (hangar, splash): both eyes see it */
+        rsxSetTransferData(ctx, GCM_TRANSFER_LOCAL_TO_LOCAL,
+                           disp_ofs[cur_fb] + (u32)(scr_h + EYE_GAP) * scr_w * 4, scr_w * 4,
+                           disp_ofs[cur_fb], scr_w * 4, scr_w * 4, scr_h);
     gcmSetFlip(ctx, cur_fb);
     rsxFlushBuffer(ctx);
     gcmSetWaitFlip(ctx);
     first_flip = 0;
 
     cur_fb ^= 1;
+    st_eye = st_drawn = 0;
     bind_target();
     vb_off = 0;
     last_draws = st_draws; last_verts = st_verts;

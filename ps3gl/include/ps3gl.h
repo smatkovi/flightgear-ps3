@@ -10,7 +10,18 @@ extern "C" {
 /* Set the video mode, bring up the RSX and load the fixed-function shaders. */
 /* Antialiasing (default on); only before the first ps3glInit() */
 void ps3glSetAntialiasing(int on);
-/* called when the RSX stops answering while antialiasing is on */
+/* Stereoscopic 3D (720p frame packing) if the display takes it; only before
+   the first ps3glInit(). Antialiasing is off then. */
+void ps3glSetStereo(int on);
+/* True when the display runs in 3D: draw each frame twice, ps3glSetEye(0)
+   (left) and ps3glSetEye(1) (right); a frame drawn once shows on both eyes. */
+int ps3glStereo(void);
+void ps3glSetEye(int eye);
+/* separation: shift of each eye's picture at infinity, in screen halves
+   (0.05 = 2.5% of the width); convergence: distance in eye-space units at
+   which both pictures meet (the screen plane) */
+void ps3glSetStereoParams(float separation, float convergence);
+/* called when the RSX stops answering while antialiasing or 3D is on */
 void ps3glSetHangHandler(void (*f)(void));
 void ps3glInit(void);
 /* Present the frame and start the next one. */
