@@ -10,10 +10,10 @@ ps3val = func(p) {
 
 ps3dump = func {
     if (getprop("/sim/ps3/debug-log")) {
-        print(sprintf("ps3dbg: thr=%.2f ail=%.2f elev=%.2f rud=%.2f rpm=%.0f kias=%.0f alt=%.0f",
+        print(sprintf("ps3dbg: thr=%.2f ail=%.2f elev=%.2f rud=%.2f rpm=%.0f n1=%.0f kias=%.0f alt=%.0f",
                       ps3val("/controls/engines/engine/throttle"), ps3val("/controls/flight/aileron"),
                       ps3val("/controls/flight/elevator"), ps3val("/controls/flight/rudder"),
-                      ps3val("/engines/engine/rpm"), ps3val("/velocities/airspeed-kt"),
+                      ps3val("/engines/engine/rpm"), ps3val("/engines/engine/n1"), ps3val("/velocities/airspeed-kt"),
                       ps3val("/position/altitude-ft")));
     }
     settimer(ps3dump, 2);

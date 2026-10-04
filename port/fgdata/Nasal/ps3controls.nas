@@ -21,17 +21,28 @@ var throttle = func(dir) {
     controls.incThrottle(dir * rate, dir * 1.0);
 }
 
-# Starter (circle): many aircraft (e.g. from the 1.x archive) start with the
-# magnetos off, and the controller has no switch for them: turn them to
-# "both" first, then crank.
+# Starter (circle, held): many aircraft (e.g. from the 1.x archive) start with
+# the magnetos off or the fuel cut off, and the controller has no switches
+# for them: magnetos to "both", fuel on, then crank every engine (jets have
+# several; FlightGear's own startEngine only cranks the "selected" ones).
 var start = func {
     var engines = props.globals.getNode("/controls/engines");
-    if (engines != nil) {
-        var e = engines.getChildren("engine");
-        for (var i = 0; i < size(e); i += 1) {
-            var m = e[i].getNode("magnetos", 1);
-            if (m.getValue() == nil or m.getValue() < 3) { m.setIntValue(3); }
-        }
+    if (engines == nil) { return; }
+    var e = engines.getChildren("engine");
+    for (var i = 0; i < size(e); i += 1) {
+        var m = e[i].getNode("magnetos", 1);
+        if (m.getValue() == nil or m.getValue() < 3) { m.setIntValue(3); }
+        e[i].getNode("cutoff", 1).setBoolValue(0);
+        e[i].getNode("starter", 1).setBoolValue(1);
     }
-    controls.startEngine();
+}
+
+# circle released: all starters off
+var start_release = func {
+    var engines = props.globals.getNode("/controls/engines");
+    if (engines == nil) { return; }
+    var e = engines.getChildren("engine");
+    for (var i = 0; i < size(e); i += 1) {
+        e[i].getNode("starter", 1).setBoolValue(0);
+    }
 }

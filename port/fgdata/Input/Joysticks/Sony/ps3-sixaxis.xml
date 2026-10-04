@@ -146,9 +146,8 @@ The d-pad looks around, R3 looks straight ahead again.
   </binding>
   <mod-up>
    <binding>
-    <command>property-assign</command>
-    <property>/controls/engines/engine[0]/starter</property>
-    <value type="bool">false</value>
+    <command>nasal</command>
+    <script>ps3controls.start_release()</script>
    </binding>
   </mod-up>
  </button>
