@@ -121,8 +121,8 @@ $(B)/gen/dxt_spu_bin.c: $(B)/spu/dxt_spu.elf
 	@python3 -c "import sys; d = open(sys.argv[1], 'rb').read(); \
 	  print('const unsigned char dxt_spu_bin[] __attribute__((aligned(128))) = {' + ','.join(map(str, d)) + '};')" $< > $@
 
-# ---- port glue: controller, audio stub, libc additions, the hangar ----
-$(eval $(call deflib,port,$(R)/port/ps3pad.c $(R)/port/al_stub.c $(R)/port/ps3_libc.c \
+# ---- port glue: controller, OpenAL on the audio port, libc additions, the hangar ----
+$(eval $(call deflib,port,$(R)/port/ps3pad.c $(R)/port/al_ps3.c $(R)/port/ps3_libc.c \
     $(R)/port/hangar/hangar.cxx $(R)/port/hangar/http.c $(R)/port/hangar/unzip.c))
 
 # ---- the program ----
@@ -135,7 +135,7 @@ DEBUG_LD := $(if $(filter 1,$(PS3_DEBUG)),-Wl$(comma)--wrap=malloc$(comma)--wrap
 FGFS_LINK = $(CXX) $(MACH) -Wl,--gc-sections -Wl,--no-multi-toc -Wl,--wrap=exit $(DEBUG_LD) -Wl,-Map,$(B)/fgfs.map \
 	  -Wl,--whole-archive $(B)/lib/libfgfs.a -Wl,--no-whole-archive \
 	  -Wl,--start-group $(B)/lib/libsimgear.a $(B)/lib/libplib.a $(B)/lib/libps3gl.a $(B)/lib/libport.a -Wl,--end-group \
-	  -L$(PORT)/lib -L/ps3dev/ppu/lib -lpng -lz -lnet -lio -lsysutil -lrsx -lgcm_sys -lsysmodule -lrt -llv2 -lm
+	  -L$(PORT)/lib -L/ps3dev/ppu/lib -lpng -lz -lnet -lio -laudio -lsysutil -lrsx -lgcm_sys -lsysmodule -lrt -llv2 -lm
 $(B)/fgfs.elf: $(LIBS_ALL)
 	@echo LD $(notdir $@)
 	@$(FGFS_LINK) -Wl,--defsym=ps3_got_start=0 -Wl,--defsym=ps3_got_end=0 -o $@.pass1

@@ -3,7 +3,6 @@
 --airport-id=LOWW
 --runway=29
 --timeofday=noon
---disable-sound
 --disable-random-objects
 --disable-ai-models
 --disable-real-weather-fetch

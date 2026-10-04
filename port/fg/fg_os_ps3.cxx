@@ -90,6 +90,8 @@ void fgOSExit(int code)
 // file: on the console it is the only view of what the program is doing.
 #define HEARTBEAT 600
 
+extern "C" void al_ps3_report(char *buf, int n);     // port/al_ps3.c
+
 static unsigned long long now_us()
 {
     struct timeval tv;
@@ -118,6 +120,8 @@ static void heartbeat(unsigned long frame)
     work_frames = 0;
     period_start = t;
     ps3pad_report(st, sizeof st);
+    ps3glLog("%s", st);
+    al_ps3_report(st, sizeof st);
     ps3glLog("%s", st);
 }
 
