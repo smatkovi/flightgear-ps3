@@ -917,6 +917,9 @@ void hangar_restart()
     if (g_batch) _exit(1);      /* would start the same failing flight again */
     fflush(stdout);
     fflush(stderr);
+    /* the plainly signed copy first: on a console the NPDRM EBOOT.BIN
+       cannot be spawned like this, and the program ended up in the XMB */
+    sysProcessExitSpawn2(USRDIR "/RELOAD.SELF", NULL, NULL, NULL, 0, 1001, SYS_PROCESS_SPAWN_STACK_SIZE_1M);
     sysProcessExitSpawn2(USRDIR "/EBOOT.BIN", NULL, NULL, NULL, 0, 1001, SYS_PROCESS_SPAWN_STACK_SIZE_1M);
     _exit(1);
 }

@@ -109,10 +109,10 @@ The d-pad looks around, R3 looks straight ahead again.
  </button>
 
  <button n="0">
-  <desc>Brakes (cross)</desc>
+  <desc>Brakes (cross; also releases the parking brake)</desc>
   <binding>
    <command>nasal</command>
-   <script>controls.applyBrakes(1)</script>
+   <script>ps3controls.brakes()</script>
   </binding>
   <mod-up>
    <binding>

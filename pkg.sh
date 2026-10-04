@@ -16,6 +16,8 @@ OUT="$R/fgfs-ps3.pkg"
 
 rm -rf "$P" && mkdir -p "$P/USRDIR"
 "$T/make_self_npdrm" "$R/build/fgfs.run.elf" "$P/USRDIR/EBOOT.BIN" "$CONTENTID" > /dev/null
+# the same program as a plain SELF: what the hangar restarts into (exitspawn)
+"$T/make_self" "$R/build/fgfs.run.elf" "$P/USRDIR/RELOAD.SELF" > /dev/null
 python3 "$T/sfo.py" --title "FlightGear 0.9.10" --appid FGFS00910 -f "$T/sfo.xml" "$P/PARAM.SFO"
 cp "$R/port/ICON0.PNG" "$P/ICON0.PNG"
 cp "$R/port/fgfs.args" "$P/USRDIR/fgfs.args"

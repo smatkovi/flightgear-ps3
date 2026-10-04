@@ -46,3 +46,13 @@ var start_release = func {
         e[i].getNode("starter", 1).setBoolValue(0);
     }
 }
+
+# Brakes (cross): some aircraft (e.g. the A380) set the parking brake when
+# they load, and the controller has no switch for it: braking releases it.
+var brakes = func {
+    if (getprop("/controls/gear/brake-parking")) {
+        setprop("/controls/gear/brake-parking", 0);
+        gui.popupTip("Parking brake released");
+    }
+    controls.applyBrakes(1);
+}
