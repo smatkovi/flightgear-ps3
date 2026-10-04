@@ -1,6 +1,6 @@
 diff -ruN '--exclude=*.orig' '--exclude=*.rej' plib-1.8.4/src/net/netSocket.cxx plib-1.8.4.ps3/src/net/netSocket.cxx
 --- plib-1.8.4/src/net/netSocket.cxx	2004-04-06 14:42:40.000000000 +0200
-+++ plib-1.8.4.ps3/src/net/netSocket.cxx	2026-10-04 00:18:57.365336813 +0200
++++ plib-1.8.4.ps3/src/net/netSocket.cxx	2026-10-04 16:07:55.973776208 +0200
 @@ -38,6 +38,9 @@
  #include <unistd.h>
  #include <netdb.h>
@@ -10,6 +10,21 @@ diff -ruN '--exclude=*.orig' '--exclude=*.rej' plib-1.8.4/src/net/netSocket.cxx 
 +#endif
  
  #else
+ 
+@@ -183,7 +186,13 @@
+ {
+   assert ( handle != -1 ) ;
+ 
+-#if defined(UL_CYGWIN) || !defined (UL_WIN32)
++#if defined(UL_PS3)
++
++  /* PS3 sockets ignore O_NONBLOCK: a "non-blocking" socket blocked */
++  int nbio = blocking ? 0 : 1 ;
++  ::setsockopt (handle, SOL_SOCKET, SO_NBIO, &nbio, sizeof(nbio));
++
++#elif defined(UL_CYGWIN) || !defined (UL_WIN32)
+ 
+   int delay_flag = ::fcntl (handle, F_GETFL, 0);
  
 diff -ruN '--exclude=*.orig' '--exclude=*.rej' plib-1.8.4/src/ssg/ssgconf.h plib-1.8.4.ps3/src/ssg/ssgconf.h
 --- plib-1.8.4/src/ssg/ssgconf.h	2004-09-14 14:19:05.000000000 +0200

@@ -242,6 +242,49 @@ diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Main/splash
      splash.read_rgb_texture(tpath.c_str());
      if (!splash.usable())
      {
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/MultiPlayer/multiplaymgr.cxx FlightGear-0.9.10.ps3/src/MultiPlayer/multiplaymgr.cxx
+--- FlightGear-0.9.10/src/MultiPlayer/multiplaymgr.cxx	2006-03-27 20:34:15.000000000 +0200
++++ FlightGear-0.9.10.ps3/src/MultiPlayer/multiplaymgr.cxx	2026-10-04 16:09:57.987131151 +0200
+@@ -32,6 +32,11 @@
+ #endif
+ 
+ #include <plib/netSocket.h>
++#ifdef __PS3__
++// NET_EWOULDBLOCK of <net/net.h>, which can't be included here: it declares
++// a function netSocket() that hides plib's class
++#define PS3_NET_EWOULDBLOCK 35
++#endif
+ 
+ #include <simgear/timing/timestamp.hxx>
+ #include <simgear/debug/logstream.hxx>
+@@ -169,6 +174,14 @@
+   //  Set members from property values
+   //////////////////////////////////////////////////
+   short rxPort = fgGetInt("/sim/multiplay/rxport");
++#ifdef __PS3__
++  // Only with --multiplay: the socket is polled every frame, and the
++  // network is up only after the hangar downloaded something.
++  if (rxPort <= 0 && fgGetInt("/sim/multiplay/txport") <= 0) {
++    SG_LOG(SG_NETWORK, SG_INFO, "FGMultiplayMgr::init - no multiplayer configured");
++    return false;
++  }
++#endif
+   if (rxPort <= 0)
+     rxPort = 5000;
+   mCallsign = fgGetString("/sim/multiplay/callsign");
+@@ -364,7 +377,11 @@
+     //  no Data received
+     //////////////////////////////////////////////////
+     if (bytes <= 0) {
+-      if (errno != EAGAIN && errno != 0) // MSVC output "NoError" otherwise
++      if (errno != EAGAIN && errno != 0 // MSVC output "NoError" otherwise
++#ifdef __PS3__
++          && errno != PS3_NET_EWOULDBLOCK
++#endif
++         )
+         perror("FGMultiplayMgr::MP_ProcessData");
+       break;
+     }
 diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Scripting/NasalSys.cxx FlightGear-0.9.10.ps3/src/Scripting/NasalSys.cxx
 --- FlightGear-0.9.10/src/Scripting/NasalSys.cxx	2006-03-20 17:01:27.000000000 +0100
 +++ FlightGear-0.9.10.ps3/src/Scripting/NasalSys.cxx	2026-10-04 15:01:21.662315449 +0200
