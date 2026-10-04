@@ -122,8 +122,10 @@ $(B)/gen/dxt_spu_bin.c: $(B)/spu/dxt_spu.elf
 	  print('const unsigned char dxt_spu_bin[] __attribute__((aligned(128))) = {' + ','.join(map(str, d)) + '};')" $< > $@
 
 # ---- port glue: controller, OpenAL on the audio port, libc additions, the hangar ----
-$(eval $(call deflib,port,$(R)/port/ps3pad.c $(R)/port/al_ps3.c $(R)/port/ps3_libc.c \
+$(eval $(call deflib,port,$(R)/port/ps3pad.c $(R)/port/al_ps3.c $(R)/port/ps3_libc.c $(R)/port/btg_prefetch.cxx \
     $(R)/port/hangar/hangar.cxx $(R)/port/hangar/http.c $(R)/port/hangar/unzip.c))
+
+EXTRA_port := -I$(SG)
 
 # ---- the program ----
 LIBS_ALL := $(B)/lib/libfgfs.a $(B)/lib/libsimgear.a $(B)/lib/libplib.a $(B)/lib/libps3gl.a $(B)/lib/libport.a

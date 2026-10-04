@@ -285,6 +285,56 @@ diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/MultiPlayer
          perror("FGMultiplayMgr::MP_ProcessData");
        break;
      }
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Scenery/FGTileLoader.cxx FlightGear-0.9.10.ps3/src/Scenery/FGTileLoader.cxx
+--- FlightGear-0.9.10/src/Scenery/FGTileLoader.cxx	2006-02-23 15:53:55.000000000 +0100
++++ FlightGear-0.9.10.ps3/src/Scenery/FGTileLoader.cxx	2026-10-04 18:16:02.525127211 +0200
+@@ -28,6 +28,11 @@
+ #include <simgear/structure/exception.hxx>
+ 
+ #include <Main/globals.hxx>
++#ifdef __PS3__
++#include <simgear/misc/sg_path.hxx>
++#include <ps3_btg_prefetch.h>
++#include <Main/fg_props.hxx>
++#endif
+ #include "FGTileLoader.hxx"
+ #include "tileentry.hxx"
+ #include "tilemgr.hxx"
+@@ -101,6 +106,24 @@
+     }
+ 
+     tile_load_queue.push( tile );
++
++#ifdef __PS3__
++    // read its terrain ahead on the second hardware thread
++    static SGPropertyNode *ahead = fgGetNode("/sim/ps3/terrain-read-ahead", true);
++    if (ahead->getType() == SGPropertyNode::NONE) ahead->setBoolValue(true);
++    if (!ahead->getBoolValue()) return;
++    std::vector<std::string> stgs;
++    const SGBucket &b = tile->get_tile_bucket();
++    for (unsigned int i = 0; i < tile_path.size(); i++) {
++        if (tile_path[i].empty()) continue;
++        SGPath p( tile_path[i] );
++        p.append( b.gen_base_path() );
++        p.append( b.gen_index_str() );
++        p.concat( ".stg" );
++        stgs.push_back( p.str() );
++    }
++    btg_prefetch_tile( tile, stgs );
++#endif
+ }
+ 
+ #ifdef WISH_PLIB_WAS_THREADED // but it isn't
+@@ -134,6 +157,9 @@
+         FGTileEntry* tile = tile_load_queue.front();
+         tile_load_queue.pop();
+ 
++#ifdef __PS3__
++        btg_begin_tile( tile );
++#endif
+         tile->load( tile_path, true );
+ 
+         FGTileMgr::ready_to_attach( tile );
 diff -ruN '--exclude=*.orig' '--exclude=*.rej' FlightGear-0.9.10/src/Scripting/NasalSys.cxx FlightGear-0.9.10.ps3/src/Scripting/NasalSys.cxx
 --- FlightGear-0.9.10/src/Scripting/NasalSys.cxx	2006-03-20 17:01:27.000000000 +0100
 +++ FlightGear-0.9.10.ps3/src/Scripting/NasalSys.cxx	2026-10-04 15:01:21.662315449 +0200

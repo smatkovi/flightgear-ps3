@@ -91,6 +91,10 @@ void fgOSExit(int code)
 #define HEARTBEAT 600
 
 extern "C" void al_ps3_report(char *buf, int n);     // port/al_ps3.c
+#include <ps3_btg_prefetch.h>
+// Main thread time for terrain files (simgear/scene/tgdb/obj.cxx): reading
+// (or taking them from the read-ahead thread) and building the scene graph
+extern "C" { unsigned long long tl_read, tl_build, tl_max; unsigned long tl_n; }
 
 static unsigned long long now_us()
 {
@@ -123,6 +127,12 @@ static void heartbeat(unsigned long frame)
     ps3glLog("%s", st);
     al_ps3_report(st, sizeof st);
     ps3glLog("%s", st);
+    btg_report(st, sizeof st);
+    ps3glLog("%s", st);
+    ps3glLog("terrain on the main thread: read %.1f ms, build %.1f ms, at most %.1f ms (%lu files)",
+             tl_read / 1000.0, tl_build / 1000.0, tl_max / 1000.0, tl_n);
+    tl_read = tl_build = tl_max = 0;
+    tl_n = 0;
 }
 
 // What went wrong while the aircraft loaded, judging by the log (empty if nothing).

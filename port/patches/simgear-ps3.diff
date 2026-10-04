@@ -1,6 +1,6 @@
 diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/debug/logstream.hxx SimGear-0.3.10.ps3/simgear/debug/logstream.hxx
 --- SimGear-0.3.10/simgear/debug/logstream.hxx	2006-03-09 23:34:47.000000000 +0100
-+++ SimGear-0.3.10.ps3/simgear/debug/logstream.hxx	2026-10-04 00:15:44.072746385 +0200
++++ SimGear-0.3.10.ps3/simgear/debug/logstream.hxx	2026-10-04 18:15:20.869494651 +0200
 @@ -26,6 +26,7 @@
  #define _LOGSTREAM_H
  
@@ -9,6 +9,19 @@ diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/debug/logs
  
  #ifdef _MSC_VER
  #  include <windows.h>
+@@ -310,6 +311,12 @@
+  */
+ #ifdef FG_NDEBUG
+ # define SG_LOG(C,P,M)
++#elif defined( __PS3__ )
++// only the main thread may log: the terrain read-ahead thread runs SimGear
++// code too (port/btg_prefetch.cxx), and the log stream and stdio are not
++// thread-safe
++extern "C" int ps3_main_thread(void);
++# define SG_LOG(C,P,M) do { if (ps3_main_thread()) sglog() << loglevel(C,P) << M << endl; } while (0)
+ #elif defined( __MWERKS__ )
+ # define SG_LOG(C,P,M) ::sglog() << ::loglevel(C,P) << M << std::endl
+ #else
 diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/nasal/code.c SimGear-0.3.10.ps3/simgear/nasal/code.c
 --- SimGear-0.3.10/simgear/nasal/code.c	2006-01-04 17:46:16.000000000 +0100
 +++ SimGear-0.3.10.ps3/simgear/nasal/code.c	2026-10-04 14:55:41.630529251 +0200
@@ -120,6 +133,61 @@ diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/scene/mode
      else if( _shader_type == 2 ) {
          // this is the same extension with different names
          isRectangleTextureSupported = SGIsOpenGLExtensionSupported("GL_EXT_texture_rectangle") ||
+diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/scene/tgdb/obj.cxx SimGear-0.3.10.ps3/simgear/scene/tgdb/obj.cxx
+--- SimGear-0.3.10/simgear/scene/tgdb/obj.cxx	2006-03-09 23:34:49.000000000 +0100
++++ SimGear-0.3.10.ps3/simgear/scene/tgdb/obj.cxx	2026-10-04 18:27:58.658621128 +0200
+@@ -26,6 +26,24 @@
+ #  include <simgear_config.h>
+ #endif
+ 
++#ifdef __PS3__
++#include <memory>
++#include <sys/time.h>
++#include <ps3_btg_prefetch.h>
++extern "C" { extern unsigned long long tl_read, tl_build, tl_max; extern unsigned long tl_n; }
++struct TileTimer {      // building time of sgBinObjLoad, for the PS3 port's log
++    struct timeval t0;
++    TileTimer(const struct timeval &t) : t0(t) {}
++    ~TileTimer() {
++        struct timeval t1;
++        gettimeofday(&t1, 0);
++        unsigned long long us = (t1.tv_sec - t0.tv_sec) * 1000000ULL + t1.tv_usec - t0.tv_usec;
++        tl_build += us;
++        if (us > tl_max) tl_max = us;
++        tl_n++;
++    }
++};
++#endif
+ #include <simgear/compiler.h>
+ 
+ #include <list>
+@@ -328,11 +346,26 @@
+                    ssgBranch *taxi_lights,
+                    ssgVertexArray *ground_lights )
+ {
++#ifdef __PS3__
++    // read ahead on the second hardware thread (port/btg_prefetch.cxx)
++    struct timeval tv0, tv1;
++    gettimeofday(&tv0, 0);
++    std::auto_ptr<SGBinObject> ahead( btg_take( path ) );
++    SGBinObject own;
++    SGBinObject &obj = ahead.get() ? *ahead : own;
++    if ( !ahead.get() && !btg_read( own, path ) ) {
++        return false;
++    }
++    gettimeofday(&tv1, 0);
++    tl_read += (tv1.tv_sec - tv0.tv_sec) * 1000000ULL + tv1.tv_usec - tv0.tv_usec;
++    TileTimer tile_timer(tv1);
++#else
+     SGBinObject obj;
+ 
+     if ( ! obj.read_bin( path ) ) {
+         return false;
+     }
++#endif
+ 
+     ssgBranch *local_terrain = new ssgBranch;
+     local_terrain->setName( "LocalTerrain" );
 diff -ruN '--exclude=*.orig' '--exclude=*.rej' SimGear-0.3.10/simgear/simgear_config.h SimGear-0.3.10.ps3/simgear/simgear_config.h
 --- SimGear-0.3.10/simgear/simgear_config.h	1970-01-01 01:00:00.000000000 +0100
 +++ SimGear-0.3.10.ps3/simgear/simgear_config.h	2026-10-04 00:15:08.404400382 +0200
