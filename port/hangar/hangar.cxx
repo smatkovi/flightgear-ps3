@@ -489,7 +489,7 @@ static bool pressed_rep(unsigned b, int btn)
 
 enum { SCR_MAIN, SCR_LIST, SCR_ASK_DL, SCR_DL, SCR_ASK_DEL, SCR_MSG };
 
-static int screen, main_sel = 2, list_sel, list_top, cur = -1, airport, antialiasing = 1;
+static int screen, main_sel = 2, list_sel, list_top, cur = -1, airport, antialiasing = 0;
 static http_dl dl;
 static int dl_entry = -1;
 static string dl_file;
@@ -671,6 +671,16 @@ static void start_download()
     screen = SCR_DL;
 }
 
+static void save_cfg();
+
+// The RSX hung with antialiasing on: start again without it
+static void aa_hang()
+{
+    antialiasing = 0;
+    save_cfg();
+    hangar_restart();
+}
+
 // aircraft, airport and antialiasing for the next start
 static void save_cfg()
 {
@@ -771,6 +781,7 @@ void hangar_run(int *argc, char **argv, int max_args)
         if (!cfg[i].compare(0, 13, "antialiasing=")) antialiasing = atoi(cfg[i].c_str() + 13) != 0;
     }
     ps3glSetAntialiasing(antialiasing);
+    ps3glSetHangHandler(aa_hang);
     ps3glInit();
     ps3glGetSize(&W, &H);
     S = H / 720.0f;

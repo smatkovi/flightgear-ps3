@@ -51,7 +51,8 @@ static gcmSurface surf[2];
    samples per pixel, stored as a surface that much larger), which the
    blit engine scales down into the display buffer before each flip. */
 static gcmSurface aa_surf;
-static int aa_on, aa_sx = 1, aa_sy = 1, aa_wanted = 1;
+static int aa_on, aa_sx = 1, aa_sy = 1, aa_wanted = 0;
+static void (*hang_handler)(void);
 static u32 aa_color_ofs, disp_ofs[2];
 
 static u32 cur_fb, first_flip = 1, label_val = 1;
@@ -99,7 +100,13 @@ static void wait_finish(void)
     rsxFlushBuffer(ctx);
     while (*(vu32 *)gcmGetLabelAddress(LABEL_INDEX) != label_val) {
         usleep(30);
-        if (++timeout > 200000) { ps3glLog("ps3gl: RSX label timeout"); break; }
+        if (++timeout > 200000) {
+            ps3glLog("ps3gl: RSX label timeout");
+            /* the RSX hangs: with antialiasing (untested territory on some
+               consoles) let the program switch it off and start again */
+            if (aa_on && hang_handler) hang_handler();
+            break;
+        }
     }
     ++label_val;
 }
@@ -1842,6 +1849,7 @@ static int set_mode(u32 id)
 }
 
 void ps3glSetAntialiasing(int on) { aa_wanted = on; }
+void ps3glSetHangHandler(void (*f)(void)) { hang_handler = f; }
 
 static void bind_target(void)
 {
@@ -1918,10 +1926,6 @@ void ps3glInit(void)
     host = memalign(1024 * 1024, HOST_SIZE);
     rsxInit(&ctx, CB_SIZE, HOST_SIZE, host);
     dxt_init();             /* texture compression on the SPUs */
-    {   /* the resolution chosen in the XMB's display settings first */
-        videoState vs;
-        if (videoGetState(VIDEO_PRIMARY, 0, &vs) == 0) ok = set_mode(vs.displayMode.resolution);
-    }
     for (i = 0; i < sizeof modes / sizeof modes[0] && !ok; i++) ok = set_mode(modes[i]);
     if (!ok) { ps3glLog("ps3gl: no usable video mode"); exit(1); }
     scr_w = vmode.width;
