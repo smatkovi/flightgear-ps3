@@ -23,12 +23,15 @@ Works:
 - the PS3 controller, including tilt steering
 - a start screen (the *hangar*) to pick the aircraft and the airport, and to
   download more aircraft from the FlightGear 1.x archive on the PS3 itself
-- 720p, about 60 MB of main memory in flight (of ~213 MB)
+- sound (engine, propeller, wind, warnings) through the PS3's audio output
+- the hardware: textures DXT-compressed by the SPUs, with mipmaps and
+  anisotropic filtering; 4x antialiasing at 720p, 2x at 1080p (the resolution
+  set in the XMB); sound mixed and terrain read ahead on the PPU's second
+  hardware thread; rumble and pressure-sensitive throttle
+- about 90-105 MB of main memory in flight (of ~213 MB), 20-45 MB of textures
 
 Not (yet) there:
 
-- sound: the OpenAL layer is a silent stub
-- mipmaps: distant textures shimmer
 - mouse and keyboard: the menu bar is hidden because it cannot be used
 - the UIUC aircraft (their flight model needs more memory than the PS3 has)
 
@@ -90,7 +93,7 @@ FlightGear 1.9).
 | right stick | aileron and elevator, like tilting (fine near the centre, 75 % at full deflection) |
 | left stick left / right | rudder |
 | left stick up / down (full) | elevator trim |
-| R2 / L2 | throttle up / down |
+| R2 / L2 | throttle up / down (the harder you press, the faster) |
 | cross | brakes |
 | circle (hold) | starter |
 | triangle | landing gear (retractable aircraft) |
@@ -152,8 +155,14 @@ to regions if memory gets short). Visibility is 20 km (`--visibility=` in
 ## Logs
 
 `/dev_hdd0/game/FGFS00910/USRDIR` also holds `fgfs.log` (FlightGear's output)
-and `ps3gl.log` (one line of memory and draw statistics every 600 frames).
-`fetch_logs.sh` copies them from a console running webMAN.
+and `ps3gl.log`, which gets a few lines every 600 frames: memory and draw
+statistics, the PPU's time per frame (without the wait for the display), the
+controller's raw motion sensor values, the sound mixer, and the terrain
+read-ahead. `fetch_logs.sh` copies them from a console running webMAN.
+
+The controller rumbles on touchdown (by sink rate), on the ground, during the
+stall warning and after a crash; `--prop:/input/ps3/rumble=0` in `fgfs.args`
+switches that off.
 
 ## Building
 
@@ -189,7 +198,16 @@ console upload. `tools/aircraft_catalog.py` builds the hangar's list
   use, on top of the RSX through PSL1GHT's librsx. The fixed-function pipeline
   (transform, lighting, fog, texture environments) is one Cg vertex program and
   a handful of fragment programs; display lists are compiled into vertex
-  buffers in video memory. `gltest/` is its self-test.
+  buffers in video memory. Textures get a mipmap chain and are compressed to
+  DXT1/DXT5 by up to six SPU threads ([ps3gl/spu/](ps3gl/spu/), with
+  [stb_dxt](https://github.com/nothings/stb)); they are sampled trilinear with
+  8x anisotropic filtering. The scene is drawn into a multisampled target that
+  the blit engine scales down before each flip. `gltest/` is its self-test.
+- **threads**: sound is mixed on a PPU thread of its own
+  ([port/al_ps3.c](port/al_ps3.c), the OpenAL subset SimGear uses), terrain
+  files are read ahead on another ([port/btg_prefetch.cxx](port/btg_prefetch.cxx));
+  the main thread keeps the simulation and the scene graph, as PLIB is not
+  thread-safe.
 - **port** ([port/](port/)): the window and OS layer, the controller as a PLIB
   joystick (with the tilt axes), stubs for OpenAL, serial ports, render
   textures and Nasal threads, PNG textures (libpng), and the hangar
