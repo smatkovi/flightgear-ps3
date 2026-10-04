@@ -108,6 +108,24 @@ void ps3pad_poll(void)
 
 const ps3pad_state *ps3pad_get(void) { return &st; }
 
+/* Rumble: large motor 0..1, small motor on/off. The large motor does not
+   turn below about a quarter of its speed, so weak values start there. */
+void ps3pad_rumble(float large, int small)
+{
+    static int last_large = -1, last_small = -1;
+    padActParam act;
+    int l = large < 0.05f ? 0 : 64 + (int)((large > 1.0f ? 1.0f : large) * 191.0f);
+    small = small != 0;
+    if (!st.connected || (l == last_large && small == last_small)) return;
+    memset(&act, 0, sizeof act);
+    act.small_motor = small;
+    act.large_motor = l;
+    if (ioPadSetActDirect(0, &act) == 0) {
+        last_large = l;
+        last_small = small;
+    }
+}
+
 void ps3pad_report(char *buf, int n)
 {
     snprintf(buf, n, "pad: polls %lu, with data %lu, with sensors %lu, len %d; "

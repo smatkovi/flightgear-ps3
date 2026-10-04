@@ -824,6 +824,7 @@ bool hangar_starting() { return g_starting; }
 
 void hangar_restart()
 {
+    ps3pad_rumble(0.0f, 0);
     fflush(stdout);
     fflush(stderr);
     sysProcessExitSpawn2(USRDIR "/EBOOT.BIN", NULL, NULL, NULL, 0, 1001, SYS_PROCESS_SPAWN_STACK_SIZE_1M);

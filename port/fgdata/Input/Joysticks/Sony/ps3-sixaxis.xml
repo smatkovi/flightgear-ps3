@@ -91,20 +91,20 @@ The d-pad looks around, R3 looks straight ahead again.
  </axis>
 
  <button n="7">
-  <desc>Throttle up (R2)</desc>
+  <desc>Throttle up (R2; the harder, the faster)</desc>
   <repeatable type="bool">true</repeatable>
   <binding>
    <command>nasal</command>
-   <script>controls.incThrottle(0.01, 1.0)</script>
+   <script>ps3controls.throttle(1)</script>
   </binding>
  </button>
 
  <button n="6">
-  <desc>Throttle down (L2)</desc>
+  <desc>Throttle down (L2; the harder, the faster)</desc>
   <repeatable type="bool">true</repeatable>
   <binding>
    <command>nasal</command>
-   <script>controls.incThrottle(-0.01, -1.0)</script>
+   <script>ps3controls.throttle(-1)</script>
   </binding>
  </button>
 

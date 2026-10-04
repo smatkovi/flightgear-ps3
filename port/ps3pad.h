@@ -27,6 +27,7 @@ void ps3pad_init(void);
 void ps3pad_poll(void);                 /* once per frame */
 const ps3pad_state *ps3pad_get(void);
 void ps3pad_report(char *buf, int n);    /* diagnostics: sensor mode and raw values */
+void ps3pad_rumble(float large, int small);  /* large motor 0..1, small on/off */
 
 #ifdef __cplusplus
 }

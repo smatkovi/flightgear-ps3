@@ -149,6 +149,23 @@ static std::string aircraft_problems()
     return w;
 }
 
+// The pressure of L2/R2 for the throttle bindings (Nasal/ps3controls.nas),
+// and the rumble that Nasal/ps3rumble.nas asks for
+static void pad_properties()
+{
+    static SGPropertyNode *l2, *r2, *large, *small;
+    const ps3pad_state *st = ps3pad_get();
+    if (!l2) {
+        l2 = fgGetNode("/input/ps3/pressure-l2", true);
+        r2 = fgGetNode("/input/ps3/pressure-r2", true);
+        large = fgGetNode("/input/ps3/rumble-large", true);
+        small = fgGetNode("/input/ps3/rumble-small", true);
+    }
+    l2->setDoubleValue(st->axis[PS3PAD_L2]);
+    r2->setDoubleValue(st->axis[PS3PAD_R2]);
+    ps3pad_rumble(large->getFloatValue(), small->getBoolValue());
+}
+
 void fgOSMainLoop()
 {
     unsigned long frame = 0;
@@ -166,6 +183,7 @@ void fgOSMainLoop()
 #endif
         unsigned long long t0 = now_us(), work;
         ps3pad_poll();
+        pad_properties();
         if (IdleHandler) (*IdleHandler)();
         if (NeedRedraw && DrawHandler) {
             (*DrawHandler)();
@@ -206,6 +224,7 @@ void fgOSPuInit()
 static void sysutil_callback(u64 status, u64 param, void *usrdata)
 {
     if (status == SYSUTIL_EXIT_GAME) {
+        ps3pad_rumble(0.0f, 0);
         hangar_mark_quit();
         exit(0);
     }
