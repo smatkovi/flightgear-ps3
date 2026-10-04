@@ -11,7 +11,7 @@ USRDIR="$GAME/USRDIR"
 DATA="$R/fgdata_x/fgfs-base-0.9.10.orig"
 
 mkdir -p "$USRDIR"
-cp -r "$R/port/fgdata/." "$DATA/"
+cp -r --preserve=timestamps "$R/port/fgdata/." "$DATA/"
 ln -sfn "$DATA" "$USRDIR/fgdata"
 [ -f "$USRDIR/fgfs.args" ] || cp "$R/port/fgfs.args" "$USRDIR/fgfs.args"
 python3 "$HOME/ps3dev/bin/sfo.py" --title "FlightGear 0.9.10" --appid "FGFS00910" \

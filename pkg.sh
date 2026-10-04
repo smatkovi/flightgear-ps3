@@ -21,7 +21,7 @@ cp "$R/port/ICON0.PNG" "$P/ICON0.PNG"
 cp "$R/port/fgfs.args" "$P/USRDIR/fgfs.args"
 if [ "$1" = --full ]; then
     [ -d "$DATA" ] || { echo "no data: run ./fetch_data.sh first"; exit 1; }
-    cp -r "$R/port/fgdata/." "$DATA/"
+    cp -r --preserve=timestamps "$R/port/fgdata/." "$DATA/"
     # UIUC aircraft need 118 MB more memory than there is; Docs are not needed;
     # aircraft that are not in the base package (installed through the hangar
     # in RPCS3) are downloads

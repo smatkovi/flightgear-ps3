@@ -18,7 +18,7 @@ for d in $(ls "$DATA/Aircraft"); do echo "$BASE" | grep -qx "$d" || EXCL="$EXCL 
 
 curl -s --max-time 5 "http://$PS3/cpursx.ps3" > /dev/null || { echo "PS3 at $PS3 does not answer (webMAN)"; exit 1; }
 [ -f "$R/fgfs-ps3.pkg" ] || { echo "build the package first: ./pkg.sh"; exit 1; }
-cp -r "$R/port/fgdata/." "$DATA/"     # regional databases, controller bindings
+cp -r --preserve=timestamps "$R/port/fgdata/." "$DATA/"     # regional databases, controller bindings
 
 # webMAN's FTP has no TLS; lftp would try it first
 lftp -c "set ftp:ssl-allow no; set ftp:passive-mode on; set net:timeout 30;
