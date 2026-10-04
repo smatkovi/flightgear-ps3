@@ -142,7 +142,7 @@ The d-pad looks around, R3 looks straight ahead again.
   <desc>Start engine (circle, hold)</desc>
   <binding>
    <command>nasal</command>
-   <script>controls.startEngine()</script>
+   <script>ps3controls.start()</script>
   </binding>
   <mod-up>
    <binding>

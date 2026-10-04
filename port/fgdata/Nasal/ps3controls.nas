@@ -20,3 +20,18 @@ var throttle = func(dir) {
     var rate = 0.002 + 0.025 * p;
     controls.incThrottle(dir * rate, dir * 1.0);
 }
+
+# Starter (circle): many aircraft (e.g. from the 1.x archive) start with the
+# magnetos off, and the controller has no switch for them: turn them to
+# "both" first, then crank.
+var start = func {
+    var engines = props.globals.getNode("/controls/engines");
+    if (engines != nil) {
+        var e = engines.getChildren("engine");
+        for (var i = 0; i < size(e); i += 1) {
+            var m = e[i].getNode("magnetos", 1);
+            if (m.getValue() == nil or m.getValue() < 3) { m.setIntValue(3); }
+        }
+    }
+    controls.startEngine();
+}
