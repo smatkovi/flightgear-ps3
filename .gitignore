@@ -1,0 +1,13 @@
+# downloads, unpacked sources and data (fetch_sources.sh, fetch_data.sh)
+/dl/
+/src/
+/fgdata_x/
+# build output
+/build/
+*.pkg
+# local only: logs, screenshots, SDK header copies, toolchain test, NVIDIA Cg runtime
+/logs/
+/shots/
+/ref/
+/gate/
+/tools/cg/

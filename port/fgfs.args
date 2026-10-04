@@ -1,0 +1,15 @@
+# FlightGear options for the PS3, one per line. Lives in USRDIR/fgfs.args.
+--aircraft=c172p
+--airport-id=LOWW
+--runway=29
+--timeofday=noon
+--disable-sound
+--disable-random-objects
+--disable-ai-models
+--disable-real-weather-fetch
+--disable-clouds3d
+--visibility=8000
+--prop:/sim/traffic-manager/enabled=false
+--log-level=info
+# no mouse on the console: hide the menu bar
+--prop:/sim/menubar/visibility=false

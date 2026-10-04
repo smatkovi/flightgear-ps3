@@ -1,0 +1,16 @@
+diff -ruN '--exclude=*.orig' SimGear-0.3.10/simgear/debug/logstream.hxx SimGear-0.3.10.ps3/simgear/debug/logstream.hxx
+--- SimGear-0.3.10/simgear/debug/logstream.hxx	2006-03-09 23:34:47.000000000 +0100
++++ SimGear-0.3.10.ps3/simgear/debug/logstream.hxx	2026-10-04 00:15:44.072746385 +0200
+@@ -26,6 +26,7 @@
+ #define _LOGSTREAM_H
+ 
+ #include <simgear/compiler.h>
++#include <cstdio>
+ 
+ #ifdef _MSC_VER
+ #  include <windows.h>
+diff -ruN '--exclude=*.orig' SimGear-0.3.10/simgear/simgear_config.h SimGear-0.3.10.ps3/simgear/simgear_config.h
+--- SimGear-0.3.10/simgear/simgear_config.h	1970-01-01 01:00:00.000000000 +0100
++++ SimGear-0.3.10.ps3/simgear/simgear_config.h	2026-10-04 00:15:08.404400382 +0200
+@@ -0,0 +1 @@
++#include <ps3_config.h>

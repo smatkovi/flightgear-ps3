@@ -1,0 +1,195 @@
+<?xml version="1.0"?>
+
+<!--
+PS3 controller (port/jsPS3.cxx).
+
+Axes:    0/1 left stick, 2/3 right stick, 4 tilt roll, 5 tilt pitch,
+         6 L2 pressure, 7 R2 pressure, 8 yaw gyro
+Buttons: 0 cross, 1 circle, 2 square, 3 triangle, 4 L1, 5 R1, 6 L2, 7 R2,
+         8 select (recentres the tilt, handled by the port), 9 start,
+         10 L3, 11 R3, 12 up, 13 down, 14 left, 15 right
+
+Tilting the controller flies the aircraft (aileron and elevator). Tilt is
+measured from the attitude the controller had when SELECT was last pressed:
+hold it the way you like and press SELECT to make that the neutral position.
+Inside the dead band the tilt axes stay at zero, so the right stick (which
+does the same) still works when the controller is held still.
+
+If roll or pitch goes the wrong way, flip the sign of <factor> on axis 4
+(roll) or axis 5 (pitch). Larger <dead-band> = calmer, less sensitive.
+-->
+
+<PropertyList>
+
+ <name>PS3 Sixaxis</name>
+
+ <axis n="4">
+  <desc>Aileron (tilt left/right)</desc>
+  <dead-band type="double">0.06</dead-band>
+  <binding>
+   <command>property-scale</command>
+   <property>/controls/flight/aileron</property>
+   <factor type="double">1.0</factor>
+  </binding>
+ </axis>
+
+ <axis n="5">
+  <desc>Elevator (tilt forward/back)</desc>
+  <dead-band type="double">0.06</dead-band>
+  <binding>
+   <command>property-scale</command>
+   <property>/controls/flight/elevator</property>
+   <factor type="double">-1.0</factor>
+  </binding>
+ </axis>
+
+ <axis n="2">
+  <desc>Aileron (right stick)</desc>
+  <binding>
+   <command>property-scale</command>
+   <property>/controls/flight/aileron</property>
+   <squared type="bool">true</squared>
+  </binding>
+ </axis>
+
+ <axis n="3">
+  <desc>Elevator (right stick)</desc>
+  <binding>
+   <command>property-scale</command>
+   <property>/controls/flight/elevator</property>
+   <factor type="double">-1.0</factor>
+   <squared type="bool">true</squared>
+  </binding>
+ </axis>
+
+ <axis n="0">
+  <desc>Rudder (left stick)</desc>
+  <binding>
+   <command>property-scale</command>
+   <property>/controls/flight/rudder</property>
+   <squared type="bool">true</squared>
+  </binding>
+ </axis>
+
+ <button n="7">
+  <desc>Throttle up (R2)</desc>
+  <repeatable type="bool">true</repeatable>
+  <binding>
+   <command>nasal</command>
+   <script>controls.incThrottle(0.01, 1.0)</script>
+  </binding>
+ </button>
+
+ <button n="6">
+  <desc>Throttle down (L2)</desc>
+  <repeatable type="bool">true</repeatable>
+  <binding>
+   <command>nasal</command>
+   <script>controls.incThrottle(-0.01, -1.0)</script>
+  </binding>
+ </button>
+
+ <button n="0">
+  <desc>Brakes (cross)</desc>
+  <binding>
+   <command>nasal</command>
+   <script>controls.applyBrakes(1)</script>
+  </binding>
+  <mod-up>
+   <binding>
+    <command>nasal</command>
+    <script>controls.applyBrakes(0)</script>
+   </binding>
+  </mod-up>
+ </button>
+
+ <button n="3">
+  <desc>Gear up/down (triangle)</desc>
+  <binding>
+   <command>nasal</command>
+   <script>controls.gearToggle()</script>
+  </binding>
+ </button>
+
+ <button n="2">
+  <desc>Next view (square)</desc>
+  <binding>
+   <command>nasal</command>
+   <script>view.stepView(1)</script>
+  </binding>
+ </button>
+
+ <button n="1">
+  <desc>Start engine (circle, hold)</desc>
+  <binding>
+   <command>nasal</command>
+   <script>controls.startEngine()</script>
+  </binding>
+  <mod-up>
+   <binding>
+    <command>property-assign</command>
+    <property>/controls/engines/engine[0]/starter</property>
+    <value type="bool">false</value>
+   </binding>
+  </mod-up>
+ </button>
+
+ <button n="5">
+  <desc>Flaps down (R1)</desc>
+  <binding>
+   <command>nasal</command>
+   <script>controls.flapsDown(1)</script>
+  </binding>
+  <mod-up>
+   <binding>
+    <command>nasal</command>
+    <script>controls.flapsDown(0)</script>
+   </binding>
+  </mod-up>
+ </button>
+
+ <button n="4">
+  <desc>Flaps up (L1)</desc>
+  <binding>
+   <command>nasal</command>
+   <script>controls.flapsDown(-1)</script>
+  </binding>
+  <mod-up>
+   <binding>
+    <command>nasal</command>
+    <script>controls.flapsDown(0)</script>
+   </binding>
+  </mod-up>
+ </button>
+
+ <button n="12">
+  <desc>Elevator trim down (d-pad up)</desc>
+  <repeatable type="bool">true</repeatable>
+  <binding>
+   <command>nasal</command>
+   <script>controls.elevatorTrim(1)</script>
+  </binding>
+ </button>
+
+ <button n="13">
+  <desc>Elevator trim up (d-pad down)</desc>
+  <repeatable type="bool">true</repeatable>
+  <binding>
+   <command>nasal</command>
+   <script>controls.elevatorTrim(-1)</script>
+  </binding>
+ </button>
+
+ <button n="9">
+  <desc>Pause (start)</desc>
+  <binding>
+   <command>property-toggle</command>
+   <property>/sim/freeze/master</property>
+  </binding>
+  <binding>
+   <command>property-toggle</command>
+   <property>/sim/freeze/clock</property>
+  </binding>
+ </button>
+
+</PropertyList>

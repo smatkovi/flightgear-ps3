@@ -1,0 +1,40 @@
+diff -ruN '--exclude=*.orig' plib-1.8.4/src/net/netSocket.cxx plib-1.8.4.ps3/src/net/netSocket.cxx
+--- plib-1.8.4/src/net/netSocket.cxx	2004-04-06 14:42:40.000000000 +0200
++++ plib-1.8.4.ps3/src/net/netSocket.cxx	2026-10-04 00:18:57.365336813 +0200
+@@ -38,6 +38,9 @@
+ #include <unistd.h>
+ #include <netdb.h>
+ #include <fcntl.h>
++#ifdef UL_PS3
++#include <ps3_net.h>
++#endif
+ 
+ #else
+ 
+diff -ruN '--exclude=*.orig' plib-1.8.4/src/util/ul.h plib-1.8.4.ps3/src/util/ul.h
+--- plib-1.8.4/src/util/ul.h	2004-06-24 18:30:55.000000000 +0200
++++ plib-1.8.4.ps3/src/util/ul.h	2026-10-04 00:18:57.364644073 +0200
+@@ -72,6 +72,10 @@
+ 
+ #define UL_MAC_OSX   1 
+ 
++#elif defined(__PS3__)
++
++#define UL_PS3       1
++
+ #elif defined(__linux__)
+ 
+ #define UL_LINUX     1
+@@ -144,6 +148,12 @@
+ #define  UL_GLX     1
+ #endif
+ 
++#ifdef UL_PS3
++#include <unistd.h>
++#include <dlfcn.h>
++#include <fcntl.h>
++#endif
++
+ #if defined(UL_BSD)
+ #include <sys/param.h>
+ #define  UL_GLX     1

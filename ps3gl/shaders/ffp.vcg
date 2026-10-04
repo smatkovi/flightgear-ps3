@@ -1,0 +1,70 @@
+// ps3gl: the OpenGL 1.x fixed-function vertex pipeline as one vertex program.
+// Transform, one light (GL_LIGHT0) with colour material, per-vertex fog, texture matrix.
+// Matrices arrive as separate rows so nothing depends on a matrix upload convention.
+void main(
+    float3 in_pos : POSITION,
+    float3 in_nrm : NORMAL,
+    float4 in_col : COLOR0,
+    float2 in_tc  : TEXCOORD0,
+
+    uniform float4 mvp0, uniform float4 mvp1, uniform float4 mvp2, uniform float4 mvp3,
+    uniform float4 mv0,  uniform float4 mv1,  uniform float4 mv2,
+    uniform float4 nm0,  uniform float4 nm1,  uniform float4 nm2,
+    uniform float4 tm0,  uniform float4 tm1,
+    uniform float4 lightPos,    // eye space, w = 0 for a directional light
+    uniform float4 lightAmb,    // light ambient + scene ambient
+    uniform float4 lightDif,
+    uniform float4 lightSpec,
+    uniform float4 matAmb,
+    uniform float4 matDif,
+    uniform float4 matSpec,
+    uniform float4 matEmi,
+    uniform float4 cmMask,      // colour material: x ambient, y diffuse, z emission, w specular
+    uniform float4 misc,        // x lighting on, y shininess, z sphere-map texgen on
+    uniform float4 fogP,        // x density, y end, z 1/(end-start)
+    uniform float4 fogW,        // weights: x linear, y exp, z exp2, w constant
+    uniform float4 fogC,        // fog colour
+    uniform float4 envC,        // texture environment colour
+
+    out float4 o_pos : POSITION,
+    out float4 o_col : COLOR0,
+    out float4 o_tc  : TEXCOORD0,
+    out float4 o_fog : TEXCOORD1,
+    out float4 o_env : TEXCOORD2)
+{
+    float4 p = float4(in_pos, 1.0);
+    o_pos = float4(dot(mvp0, p), dot(mvp1, p), dot(mvp2, p), dot(mvp3, p));
+
+    float3 eye = float3(dot(mv0, p), dot(mv1, p), dot(mv2, p));
+    float3 n = float3(dot(nm0.xyz, in_nrm), dot(nm1.xyz, in_nrm), dot(nm2.xyz, in_nrm));
+    n = n * rsqrt(max(dot(n, n), 0.000001));
+
+    float3 L = lightPos.xyz - eye * lightPos.w;
+    L = L * rsqrt(max(dot(L, L), 0.000001));
+    float3 H = L + float3(0.0, 0.0, 1.0);
+    H = H * rsqrt(max(dot(H, H), 0.000001));
+    float4 k = lit(dot(n, L), dot(n, H), misc.y);
+
+    float4 a = lerp(matAmb,  in_col, cmMask.x);
+    float4 d = lerp(matDif,  in_col, cmMask.y);
+    float4 e = lerp(matEmi,  in_col, cmMask.z);
+    float4 s = lerp(matSpec, in_col, cmMask.w);
+    float4 lc;
+    lc.rgb = e.rgb + a.rgb * lightAmb.rgb + d.rgb * lightDif.rgb * k.y + s.rgb * lightSpec.rgb * k.z;
+    lc.a = d.a;
+    o_col = lerp(in_col, lc, misc.x);
+
+    float4 t = float4(in_tc, 0.0, 1.0);
+    float2 tc = float2(dot(tm0, t), dot(tm1, t));
+    // GL_SPHERE_MAP
+    float3 u = eye * rsqrt(max(dot(eye, eye), 0.000001));
+    float3 r = reflect(u, n) + float3(0.0, 0.0, 1.0);
+    float2 sm = r.xy * (0.5 * rsqrt(max(dot(r, r), 0.000001))) + float2(0.5, 0.5);
+    o_tc = float4(lerp(tc, sm, misc.z), 0.0, 1.0);
+
+    float z = abs(eye.z);
+    float dz = fogP.x * z;
+    float f = fogW.x * ((fogP.y - z) * fogP.z) + fogW.y * exp(-dz) + fogW.z * exp(-dz * dz) + fogW.w;
+    o_fog = float4(fogC.rgb, saturate(f));
+    o_env = envC;
+}

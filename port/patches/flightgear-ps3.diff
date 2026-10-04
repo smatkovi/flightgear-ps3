@@ -1,0 +1,217 @@
+diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/FDM/LaRCsim/LaRCsim.cxx FlightGear-0.9.10.ps3/src/FDM/LaRCsim/LaRCsim.cxx
+--- FlightGear-0.9.10/src/FDM/LaRCsim/LaRCsim.cxx	2006-02-23 15:53:43.000000000 +0100
++++ FlightGear-0.9.10.ps3/src/FDM/LaRCsim/LaRCsim.cxx	2026-10-04 11:48:32.405185338 +0200
+@@ -36,6 +36,9 @@
+ #include <Aircraft/controls.hxx>
+ #include <FDM/flight.hxx>
+ #include <FDM/UIUCModel/uiuc_aircraft.h>
++#ifdef __PS3__
++extern "C" void uiuc_aircraft_alloc();
++#endif
+ #include <Main/fg_props.hxx>
+ #include <Model/acmodel.hxx>
+ 
+@@ -56,6 +59,9 @@
+     aero = fgGetNode("/sim/aero", true);
+     uiuc_type = fgGetNode("/sim/uiuc-type", true);
+ 
++#ifdef __PS3__
++    if ( !strcmp(aero->getStringValue(), "uiuc") ) uiuc_aircraft_alloc();
++#endif
+     ls_toplevel_init( 0.0, (char *)(aero->getStringValue()) );
+ 
+     lsic=new LaRCsimIC; //this needs to be brought up after LaRCsim is
+diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/FDM/UIUCModel/uiuc_wrapper.cpp FlightGear-0.9.10.ps3/src/FDM/UIUCModel/uiuc_wrapper.cpp
+--- FlightGear-0.9.10/src/FDM/UIUCModel/uiuc_wrapper.cpp	2006-02-23 15:53:47.000000000 +0100
++++ FlightGear-0.9.10.ps3/src/FDM/UIUCModel/uiuc_wrapper.cpp	2026-10-04 11:48:21.863221278 +0200
+@@ -117,7 +117,16 @@
+ extern "C" void uiuc_network_recv_routine();
+ extern "C" void uiuc_network_send_routine();
+ 
++#ifdef __PS3__
++// AIRCRAFT holds fixed-size data tables, about 118 MB. Allocated on first use
++// of the UIUC model instead of at start-up: a PS3 program gets ~213 MB in all.
++AIRCRAFT *aircraft_ = 0;
++extern "C" void uiuc_aircraft_alloc() { if (!aircraft_) aircraft_ = new AIRCRAFT; }
++#define UIUC_ALLOC() uiuc_aircraft_alloc()
++#else
+ AIRCRAFT *aircraft_ = new AIRCRAFT;
++#define UIUC_ALLOC()
++#endif
+ 
+ // SendArray testarray(4950);
+ 
+@@ -131,6 +140,7 @@
+ 
+ void uiuc_initial_init ()
+ {
++  UIUC_ALLOC();
+   // This function is called from uiuc_init_2_wrapper (uiuc_aero.c in LaRCsim)
+   // which is called from ls_step and ls_model.
+   // Apply brute force initializations, which override unwanted changes
+@@ -160,6 +170,7 @@
+ 
+ void uiuc_defaults_inits ()
+ {
++  UIUC_ALLOC();
+   // set defaults and initialize (called once from uiuc_init_2_wrapper)
+ 
+   //fog inits 
+@@ -286,6 +297,7 @@
+ 
+ void uiuc_vel_init ()
+ {
++  UIUC_ALLOC();
+   // Calculates the local velocity (V_north, V_east, V_down) from the body
+   // velocities.
+   // Called from uiuc_local_vel_init which is called from ls_step.
+@@ -315,6 +327,7 @@
+ 
+ void uiuc_init_aeromodel ()
+ {
++  UIUC_ALLOC();
+   // Initializes the UIUC aircraft model.
+   // Called once from uiuc_init_2_wrapper
+   SGPath path(globals->get_fg_root());
+@@ -327,6 +340,7 @@
+ 
+ void uiuc_force_moment(double dt)
+ {
++  UIUC_ALLOC();
+   double qS = Dynamic_pressure * Sw;
+   double qScbar = qS * cbar;
+   double qSb = qS * bw;
+@@ -448,21 +462,25 @@
+ 
+ void uiuc_wind_routine()
+ {
++  UIUC_ALLOC();
+   uiuc_getwind();
+ }
+ 
+ void uiuc_engine_routine()
+ {
++  UIUC_ALLOC();
+   uiuc_engine();
+ }
+ 
+ void uiuc_gear_routine ()
+ {
++  UIUC_ALLOC();
+   uiuc_gear();
+ }
+ 
+ void uiuc_record_routine(double dt)
+ {
++  UIUC_ALLOC();
+   if (trigger_last_time_step == 0 && trigger_on == 1) {
+     if (trigger_toggle == 0)
+       trigger_toggle = 1;
+@@ -481,12 +499,14 @@
+ 
+ void uiuc_network_recv_routine()
+ {
++  UIUC_ALLOC();
+   //if (use_uiuc_network)
+   //  uiuc_network(1);
+ }
+ 
+ void uiuc_network_send_routine()
+ {
++  UIUC_ALLOC();
+   //if (use_uiuc_network)
+   //  uiuc_network(2);
+ }
+diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/GUI/gui.cxx FlightGear-0.9.10.ps3/src/GUI/gui.cxx
+--- FlightGear-0.9.10/src/GUI/gui.cxx	2006-02-23 15:53:47.000000000 +0100
++++ FlightGear-0.9.10.ps3/src/GUI/gui.cxx	2026-10-04 00:19:51.619521980 +0200
+@@ -66,7 +66,12 @@
+     char *mesa_win_state;
+ 
+     // Initialize PUI
++#ifdef __PS3__
++    extern void fgOSPuInit();   // fg_os_ps3.cxx: PUI has no window backend here
++    fgOSPuInit();
++#else
+     puInit();
++#endif
+     puSetDefaultStyle         ( PUSTYLE_SMALL_SHADED ); //PUSTYLE_DEFAULT
+     puSetDefaultColourScheme  (0.8, 0.8, 0.9, 1);
+ 
+diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Include/config.h FlightGear-0.9.10.ps3/src/Include/config.h
+--- FlightGear-0.9.10/src/Include/config.h	1970-01-01 01:00:00.000000000 +0100
++++ FlightGear-0.9.10.ps3/src/Include/config.h	2026-10-04 00:15:08.404400382 +0200
+@@ -0,0 +1 @@
++#include <ps3_config.h>
+diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Include/version.h FlightGear-0.9.10.ps3/src/Include/version.h
+--- FlightGear-0.9.10/src/Include/version.h	1970-01-01 01:00:00.000000000 +0100
++++ FlightGear-0.9.10.ps3/src/Include/version.h	2026-10-04 00:19:04.757576337 +0200
+@@ -0,0 +1,32 @@
++// version.h -- FlightGear version
++//
++// Written by Curtis Olson, started October 2000.
++//
++// Copyright (C) 2000  Curtis L. Olson  - http://www.flightgear.org/~curt
++//
++// This library is free software; you can redistribute it and/or
++// modify it under the terms of the GNU Library General Public
++// License as published by the Free Software Foundation; either
++// version 2 of the License, or (at your option) any later version.
++//
++// This library is distributed in the hope that it will be useful,
++// but WITHOUT ANY WARRANTY; without even the implied warranty of
++// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++// Library General Public License for more details.
++//
++// You should have received a copy of the GNU Library General Public
++// License along with this library; if not, write to the
++// Free Software Foundation, Inc., 59 Temple Place - Suite 330,
++// Boston, MA  02111-1307, USA.
++//
++// $Id: version.h.in,v 1.2 2004/11/19 22:10:43 curt Exp $
++
++
++#ifndef _FLIGHTGEAR_VERSION_H
++#define _FLIGHTGEAR_VERSION_H
++
++
++#define FLIGHTGEAR_VERSION "0.9.10"
++
++
++#endif // _FLIGHTGEAR_VERSION_H
+diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Main/bootstrap.cxx FlightGear-0.9.10.ps3/src/Main/bootstrap.cxx
+--- FlightGear-0.9.10/src/Main/bootstrap.cxx	2006-03-28 23:18:32.000000000 +0200
++++ FlightGear-0.9.10.ps3/src/Main/bootstrap.cxx	2026-10-04 00:31:49.489647076 +0200
+@@ -144,6 +144,11 @@
+ 
+ int _bootstrap_OSInit;
+ 
++#ifdef __PS3__
++// The process entry point is in fg_os_ps3.cxx; it calls this.
++#define main fgfs_main
++#endif
++
+ // Main entry point; catch any exceptions that have made it this far.
+ int main ( int argc, char **argv ) {
+ 
+diff -ruN '--exclude=*.orig' FlightGear-0.9.10/src/Sound/morse.cxx FlightGear-0.9.10.ps3/src/Sound/morse.cxx
+--- FlightGear-0.9.10/src/Sound/morse.cxx	2006-02-23 15:53:56.000000000 +0100
++++ FlightGear-0.9.10.ps3/src/Sound/morse.cxx	2026-10-04 11:59:11.654001863 +0200
+@@ -192,7 +192,7 @@
+     for ( i = 0; i < (int)id.length(); ++i ) {
+ 	if ( idptr[i] >= 'A' && idptr[i] <= 'Z' ) {
+ 	    int c = (int)(idptr[i] - 'A');
+-	    for ( j = 0; j < 4 || alphabet[c][j] == end; ++j ) {
++	    for ( j = 0; j < 4; ++j ) {
+ 		if ( alphabet[c][j] == DIT ) {
+ 		    length += DIT_SIZE;
+ 		} else if ( alphabet[c][j] == DAH ) {
+@@ -226,7 +226,7 @@
+     for ( i = 0; i < (int)id.length(); ++i ) {
+ 	if ( idptr[i] >= 'A' && idptr[i] <= 'Z' ) {
+ 	    int c = (int)(idptr[i] - 'A');
+-	    for ( j = 0; j < 4 || alphabet[c][j] == end; ++j ) {
++	    for ( j = 0; j < 4; ++j ) {
+ 		if ( alphabet[c][j] == DIT ) {
+ 		    memcpy( buf_ptr, dit_ptr, DIT_SIZE );
+ 		    buf_ptr += DIT_SIZE;

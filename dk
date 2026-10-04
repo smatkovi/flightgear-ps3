@@ -1,0 +1,8 @@
+#!/bin/bash
+# Run a command inside the PS3 toolchain image (GCC 7.2, PSL1GHT with the
+# 4-argument rsxInit). The repository is mounted at the same path inside.
+# Usage: ./dk make -j8      (DK_IMAGE overrides the image)
+R="$(cd "$(dirname "$0")" && pwd)"
+IMAGE="${DK_IMAGE:-markstreet/sm64:ps3}"
+exec docker run --rm -u "$(id -u):$(id -g)" -v "$R":"$R" -w "$PWD" -e HOME=/tmp \
+  "$IMAGE" sh -c "export PSL1GHT=/ps3dev PS3DEV=/ps3dev PATH=/ps3dev/bin:/ps3dev/ppu/bin:\$PATH; $*"
