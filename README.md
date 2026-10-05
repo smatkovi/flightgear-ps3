@@ -25,9 +25,11 @@ Works:
   download more aircraft from the FlightGear 1.x archive on the PS3 itself
 - sound (engine, propeller, wind, warnings) through the PS3's audio output
 - the hardware: textures DXT-compressed by the SPUs, with mipmaps and
-  anisotropic filtering; 4x antialiasing at 720p, 2x at 1080p (the resolution
-  set in the XMB); sound mixed and terrain read ahead on the PPU's second
-  hardware thread; rumble and pressure-sensitive throttle
+  anisotropic filtering; sound mixed and terrain read ahead on the PPU's
+  second hardware thread; rumble and pressure-sensitive throttle
+- stereoscopic 3D for 3D TVs and projectors (720p frame packing) with the
+  settings of Gran Turismo 5: on/off, parallax 1-10, convergence 0.00-1.00,
+  all changed while running
 - about 90-105 MB of main memory in flight (of ~213 MB), 20-45 MB of textures
 
 Not (yet) there:
@@ -57,7 +59,7 @@ The start screen shows the aircraft and the airport of the next flight:
 | d-pad up / down | choose a line |
 | cross | open the aircraft list / start (on *Fly*) |
 | d-pad left / right | change the airport and runway (Vienna, San Francisco, Oakland, and 16 more in Central Europe) |
-| triangle | antialiasing on/off (restarts) |
+| square | 3D on/off (only on a 3D TV or projector) |
 | START | fly |
 
 In the aircraft list, the installed aircraft come first, then the ones that
@@ -101,7 +103,7 @@ FlightGear 1.9).
 | d-pad | look around |
 | R3 (press the right stick) | look ahead again |
 | R1 / L1 | flaps down / up |
-| START | pause menu (resume, rumble on/off, back to the hangar, quit) |
+| START | pause menu (resume, rumble on/off, 3D on/off, 3D parallax and convergence with left/right, back to the hangar, quit) |
 
 Hold the controller the way that is comfortable and press SELECT once: tilt is
 measured from there. If roll or pitch goes the wrong way for you, flip the sign
